@@ -1,0 +1,23 @@
+{
+  "files": {
+    "main.css": "/web-boilerplate/static/css/main.a617e044.chunk.css",
+    "main.js": "/web-boilerplate/static/js/main.75910c88.chunk.js",
+    "main.js.map": "/web-boilerplate/static/js/main.75910c88.chunk.js.map",
+    "runtime-main.js": "/web-boilerplate/static/js/runtime-main.9fcc2fc5.js",
+    "runtime-main.js.map": "/web-boilerplate/static/js/runtime-main.9fcc2fc5.js.map",
+    "static/js/2.49dbea71.chunk.js": "/web-boilerplate/static/js/2.49dbea71.chunk.js",
+    "static/js/2.49dbea71.chunk.js.map": "/web-boilerplate/static/js/2.49dbea71.chunk.js.map",
+    "static/js/3.f7f27238.chunk.js": "/web-boilerplate/static/js/3.f7f27238.chunk.js",
+    "static/js/3.f7f27238.chunk.js.map": "/web-boilerplate/static/js/3.f7f27238.chunk.js.map",
+    "index.html": "/web-boilerplate/index.html",
+    "static/css/main.a617e044.chunk.css.map": "/web-boilerplate/static/css/main.a617e044.chunk.css.map",
+    "static/js/2.49dbea71.chunk.js.LICENSE.txt": "/web-boilerplate/static/js/2.49dbea71.chunk.js.LICENSE.txt",
+    "static/media/logo.6ce24c58.svg": "/web-boilerplate/static/media/logo.6ce24c58.svg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.9fcc2fc5.js",
+    "static/js/2.49dbea71.chunk.js",
+    "static/css/main.a617e044.chunk.css",
+    "static/js/main.75910c88.chunk.js"
+  ]
+}
