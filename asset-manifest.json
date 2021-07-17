@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/web-boilerplate/static/css/main.a617e044.chunk.css",
-    "main.js": "/web-boilerplate/static/js/main.75910c88.chunk.js",
-    "main.js.map": "/web-boilerplate/static/js/main.75910c88.chunk.js.map",
+    "main.js": "/web-boilerplate/static/js/main.82163302.chunk.js",
+    "main.js.map": "/web-boilerplate/static/js/main.82163302.chunk.js.map",
     "runtime-main.js": "/web-boilerplate/static/js/runtime-main.9fcc2fc5.js",
     "runtime-main.js.map": "/web-boilerplate/static/js/runtime-main.9fcc2fc5.js.map",
     "static/js/2.49dbea71.chunk.js": "/web-boilerplate/static/js/2.49dbea71.chunk.js",
@@ -18,6 +18,6 @@
     "static/js/runtime-main.9fcc2fc5.js",
     "static/js/2.49dbea71.chunk.js",
     "static/css/main.a617e044.chunk.css",
-    "static/js/main.75910c88.chunk.js"
+    "static/js/main.82163302.chunk.js"
   ]
 }
