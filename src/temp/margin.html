@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <body>
+    <style>
+      *{
+        box-sizing: border-box;
+      }
+      .con{
+        border:10px solid red;
+      }
+      .con>*{
+        display: inline-block;
+      }
+      .inner{
+        border:10px solid green;
+        width:200px;
+/*        margin-right:-143px;*/
+      }
+      .other{
+        border:10px solid blue;
+        width:200px;
+      }
+    </style>
+    <div class="con">
+      <div class="inner">
+        INNER
+      </div>
+      <div class="other">
+        OTHER
+      </div>
+    </div>
+  </body>
+</html>

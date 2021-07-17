@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
+      <script>
+  UPLOADCARE_PUBLIC_KEY = "56e94eff3f72731a45d5";
+</script>
+<script charset="utf-8" src="//ucarecdn.com/widget/2.10.0/uploadcare/uploadcare.full.min.js"></script>
+  </head>
+  <body>
+     <textarea name="" id="text" cols="30" rows="10"></textarea>
+    <input onclick='responsiveVoice.speak(document.getElementById("text").value, "Korean Female");' type='button' value='🔊 Play' />
+    <input type="hidden" role="uploadcare-uploader" />
+  </body>
+</html>

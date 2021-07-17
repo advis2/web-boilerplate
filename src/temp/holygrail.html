@@ -1,0 +1,113 @@
+<!doctype>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+      body{
+        
+      }
+      .container{
+        min-width:570px;
+        max-width:1000px;
+        margin:0 auto;
+      }
+      .container{
+        border:5px solid red;
+      }
+      .container .content{
+        border:5px solid green;
+      }
+      .container .content>*{
+        border:5px solid blue;
+      }
+      .container footer{
+        border:5px solid #ffbd08;
+      }
+      
+      *{
+        box-sizing: border-box;
+      }
+      
+      .container .content {
+        padding-left:200px;
+        padding-right:150px;
+        overflow: hidden;
+      }
+      .container .content>*{
+        float: left;
+        padding-bottom:20000px;
+        margin-bottom:-20000px;
+      }
+      .container .content main{
+        width:100%;
+      }
+      .container .content nav{
+        width:200px;
+        margin-left:-100%;
+        right:200px;
+        position: relative;
+      }
+      .container .content aside{
+        width:150px;
+        position: relative;
+        margin-right:-150px;
+      }
+      .container footer{
+        clear: both;
+        position: relative;
+      }
+      
+      @media(max-width:800px){
+        .container .content{
+          padding:0;
+        }
+        .container .content>*{
+          float:none;
+          padding-bottom: 0;
+          margin-bottom: 0;
+        }
+        .container .content main{
+          width:auto;
+        }
+        .container .content nav{
+          width:auto;
+          margin-left:0;
+          right:0;
+          position: static;
+        }
+        .container .content aside{
+          width:auto;
+          position: static;
+          margin-right:0;
+        }
+      }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>생활코딩</h1>
+        </header>
+        <section class="content">
+            <main>
+                Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolore ratione maiores quia fugit ut! Nisi quidem delectus quaerat consectetur eaque voluptatem laborum illo autem adipisci id, tenetur quo amet pariatur, enim accusantium, voluptates asperiores facere vero corporis reiciendis aliquid facilis. Repellat quisquam sit nemo ea natus nulla repellendus possimus magni ut, tempora dolor, minima quibusdam iure voluptatibus cumque voluptate in qust inventore, eaque esse sapiente, temporibus eveniet.
+            </main>
+            <nav>
+                <ul>
+                  <li>item1</li>
+                  <li>item2</li>
+                  <li>item3</li>
+                  <li>item4</li>
+                  <li>item5</li>
+                </ul>
+            </nav>
+            <aside>
+                Lorem ipsum dolor sit amet, cons, harum assumenda molestias odit. nisi ducimus! Nemo sint debitis ipsam, fugit et. Officia commodi perspiciatis ex error impedit culpa eveniet tenetur soluta sed! Quam reiciendis ipsum facilis veniam nobis illum omnis suscipit.
+            </aside>
+        </section>
+        <footer>
+            <a href="https://opentutorials.org/course/1">홈페이지</a>
+        </footer>
+    </div>
+</body>
+</html>

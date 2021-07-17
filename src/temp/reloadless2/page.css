@@ -1,0 +1,47 @@
+body {
+  background-image: url(https://source.unsplash.com/random/1920x900/);
+  background-size: cover;
+  height: 100vh;
+  margin: 0;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 200;
+}
+
+article {
+  background-color: rgba(255, 255, 255, 0.71);
+  max-width: 30rem;
+  padding: 1rem;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.control {
+  position: fixed;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  width: 100%;
+}
+
+.control li {
+  display: inline-block;
+}
+
+.control a {
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  padding: 0 0.5rem;
+}
+
+.control {
+  display: flex;
+}
+
+.control nav {
+  flex-grow: 1;
+}
+
+.control .player {
+  padding: 0;
+  flex-basis: 7rem;
+}

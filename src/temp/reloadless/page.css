@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400');
+@import url(fontello/css/fontello.css);
+body {
+  background-image: url(https://source.unsplash.com/random/1600x900);
+  background-size: cover;
+  min-height: 100vh;
+  margin: 0;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 200;
+}
+
+article {
+  background-color: rgba(255, 255, 255, 0.53);
+  max-width: 20rem;
+  font-weight: 200;
+  padding: 0.5rem;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.control {
+  position: fixed;
+  bottom: 0;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.47);
+  width: 100%;
+  display: flex;
+}
+
+.control nav {
+  flex-grow: 1;
+}
+
+.control .player {
+  flex-basis: 7rem;
+  justify-content: flex-end;
+  margin-right: 1rem;
+}
+
+.control .player a>span{
+  display: none;
+}
+
+.control ul {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+
+.control li {
+  display: inline-block;
+  padding: 0 0.5rem;
+}
+
+.control a {
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.51);
+}

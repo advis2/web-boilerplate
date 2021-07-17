@@ -1,0 +1,74 @@
+<!doctype>
+<html>
+  <head>
+   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400" rel="stylesheet">
+    <style>
+      body{
+        margin:0;
+        font-family: 'Source Sans Pro', sans-serif;
+      }
+      .scene{
+        height:100vh;
+        display: block;
+        background-attachment: fixed;
+      }
+      .scene header{
+        color:white;
+        max-width:80%;
+        position:relative;
+        top:50%;
+        left:50%;
+        transform:translateX(-50%) translateY(-50%);
+        text-align: center;
+        font-weight: 200;
+      }
+      .scene h1{
+        margin:0;
+        font-size:2rem;
+        font-weight: 200;
+      }
+      .scene h1:after{
+        content:'';
+        border-bottom: 1px solid white;
+        display:block;
+        width:8rem;
+        margin:0.7rem auto;
+      }
+      .scene.one{
+        background-image:url(https://source.unsplash.com/category/nature/1600x900)
+      }
+      .scene.two{
+        background-image:url(https://source.unsplash.com/category/food/1600x900)
+      }
+      .scene.three{
+        background-image:url(https://source.unsplash.com/category/buildings/1600x900)
+      }
+    </style>
+  </head>
+  <body>
+    <section class="scene one">
+      <header>
+        <h1>
+          ipsum Lorem dolor sit.
+        </h1>
+        Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+      </header>
+    </section>
+    <section class="scene two">
+      <header>
+        <h1>
+          ipsum Lorem dolor sit.
+        </h1>
+        Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+      </header>
+    </section>
+    <section class="scene three">
+      <header>
+        <h1>
+          ipsum Lorem dolor sit.
+        </h1>
+        Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+      </header>
+    </section>
+  </body>
+</html>

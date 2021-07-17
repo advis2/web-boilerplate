@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="page.css">
+  <script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <article>
+    <div class="content">
+      Lorem ipsum dolor sit amet, consectetur adipisicing elit. Deleniti ex unde minus inventore, cumque fugiat veniam, qui dolor maiores quis, non nulla iste laborum esse temporibus eum quod eligendi deserunt!
+      <iframe id="youtube-video" width="100%" src="https://www.youtube.com/embed/ooSSqDpAnR8?rel=0&enablejsapi=1" frameborder="0" allowfullscreen enablejsapi="1"></iframe>
+      <script>
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        var player;
+
+        function onYouTubeIframeAPIReady() {
+          player = new YT.Player('youtube-video', {
+            events: {
+              'onReady': onPlayerReady,
+              'onStateChange': onPlayerStateChange
+            }
+          });
+          console.log(player);
+        }
+
+        function onPlayerReady() {
+          console.log("hey Im ready");
+          //do whatever you want here. Like, player.playVideo();
+
+        }
+
+        function onPlayerStateChange(e) {
+          console.log("my state changed", e);
+        }
+      </script>
+    </div>
+  </article>
+  <div class="control">
+    <nav>
+      <ul>
+        <li><a href="page1.html">page1</a></li>
+        <li><a href="page2.html">page2</a></li>
+      </ul>
+    </nav>
+    <ul class="player">
+      <li><a href="#play" class="play icon-play"><span>play</span></a></li>
+      <li><a href="#pause" class="pause icon-pause"><span>pause</span></a></li>
+    </ul>
+  </div>
+  <script src="page.js"></script>
+</body>
+
+</html>

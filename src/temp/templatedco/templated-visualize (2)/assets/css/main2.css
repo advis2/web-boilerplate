@@ -1,0 +1,120 @@
+#wrapper{
+  border:5px solid red;
+}
+#wrapper>*{
+  border:5px solid green;
+}
+#wrapper>*>*{
+  border:5px solid blue;
+}
+body{
+  background-image: url(../../images/bg.jpg);
+  background-size: cover;
+  background-position: top center;
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 200;
+  line-height:1.65;
+}
+#wrapper{
+  max-width: 1280px;
+  margin:5rem auto;
+}
+#header{
+  text-align: center;
+  margin-bottom: 2rem;
+}
+#header .avatar {
+  border-radius: 100%;
+  display: inline-block;
+  padding:0.5rem;
+  border:1px solid rgba(255,255,255, 0.25);
+  
+}
+#header .avatar img{
+  border-radius: 100%;
+  display: block;
+}
+#header h1{
+  font-size: 1.75rem;
+  color:rgba(255,255,255,0.6);
+  margin:2rem 0;
+}
+#header h1 strong{
+  color:rgba(255,255,255,1);
+}
+#header h1 a{
+  color:rgba(255,255,255,0.6);
+  text-decoration: none;
+  border-bottom: dotted 1px rgba(255,255,255,0.6);
+}
+#header li{
+  display: inline-block;
+  border-radius: 100%;
+  border:1px solid rgba(255,255,255, 0.25);
+  padding:0.5rem;
+  background-color: rgba(255,255,255,0.1);
+  width:1.8rem;
+  height:1.8rem;
+}
+#header li a{
+  text-decoration: none;
+  color:rgba(255,255,255,0.6);
+  font-size:1.2rem;
+  display: block;
+}
+#header li .label{
+  display:none;
+}
+#main .thumbnails{
+  display: flex;
+}
+#main .thumbnails>div{
+  flex-grow: 1;
+  margin:1rem;
+}
+#main .thumbnails>div a{
+  margin-bottom:1rem;
+  display:block;
+}
+#main .thumbnails>div img{
+  width:100%;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  display: block;
+}
+#main .thumbnails>div h3{
+  border-color:rgba(255, 255, 255, 0.33);
+  border-style: solid;
+  border-width:0 1px 1px 1px;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+  padding:0.7rem;
+  text-align: center;
+  background-color:rgba(255, 255, 255, 0.1);
+  color:white;
+}
+
+#footer:before{
+  border-top:1px solid rgba(255, 255, 255, 0.33);
+  content:"";
+  width:10rem;
+  display: block;
+  margin:5rem auto;
+}
+
+#footer{
+  font-size: 1.2rem;
+  color:rgba(255,255,255,0.6);
+  text-align: center;
+}
+#footer a{
+  color:rgba(255,255,255,0.6);
+  text-decoration: none;
+  border-bottom: dotted 1px rgba(255,255,255,0.6);
+}
+@media(max-width:480px){
+  #main .thumbnails{
+    flex-direction: column;
+  }
+  #
+}

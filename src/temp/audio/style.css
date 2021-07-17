@@ -1,0 +1,84 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+nav {
+  background-color: rgba(0, 0, 0, 0.46);
+  padding: 1rem;
+}
+
+nav ul {
+  margin: 0;
+}
+
+nav li {
+  display: inline-block;
+  padding: 0 1rem;
+}
+
+nav a {
+  text-decoration: none;
+  color: white;
+}
+
+article {
+  margin: 10rem;
+  padding:0.5rem;
+  color: rgba(255, 255, 255, 0.76);
+  font-weight: 200;
+  background-color:rgba(0, 0, 0, 0.37);
+}
+
+#audio_player {
+  position: fixed;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.41);
+  color: white;
+  width: 100%;
+  display: flex;
+  padding: 0 2rem;
+}
+
+#audio_player .player {
+  list-style: none;
+  padding: 0;
+  flex-grow: 1;
+}
+
+#audio_player li {
+  display: inline-block;
+}
+
+#audio_player a {
+  color: white;
+  text-decoration: none;
+  font-size: 1.5rem;
+}
+
+#audio_player a>span {
+  display: none;
+}
+
+#audio_player .info {
+  border: 1px solid white;
+  flex-basis: 16rem;
+}
+
+progress[value] {
+  /* Reset the default appearance */
+  -webkit-appearance: none;
+  appearance: none;
+  width: 250px;
+  height: 20px;
+}
+
+body {
+  background-image: url(https://source.unsplash.com/category/nature/1600x900
+);
+  background-size: cover;
+}

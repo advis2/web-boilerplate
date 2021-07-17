@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Centered Image Example</title>
+  <style>
+    .thumbnail{
+      background-size: cover;
+      width:200px;
+      height:200px;
+      display: inline-block;
+      box-sizing: content-box;
+      margin:20px;
+    }
+    .circle{
+      border-radius: 100%;
+    }
+    .round{
+      border-radius: 10%;
+    }
+  </style>
+</head>
+<body>
+  <div class="thumbnail circle" style="background-image:url('../image/mountain.jpg')">
+  </div>
+  <div class="thumbnail round" style="background-image:url('../image/mountain.jpg')">
+  </div>
+  <div class="thumbnail" style="background-image:url('../image/mountain.jpg')">
+  </div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+
+<head>
+
+</head>
+
+<body>
+  <textarea name="" id="target" cols="30" rows="10">
+1	的	7922684	4.09432531783	de/di2/di4	(possessive particle)/of, really and truly, aim/clear
+2	一	3050722	5.67089309742	yi1	one/1/single/a(n)
+3	是	2615490	7.02253944928	shi4	is/are/am/yes/to be
+4	不	2237915	8.17906065392	bu4/bu2	(negative prefix)/not/no
+5	了	2128528	9.27905228304	le/liao3/liao4	(modal particle intensifying preceding clause)/(completed action marker), to know/to understand/to know, clear, look afar from a high place
+6	在	2009181	10.3173671567	zai4	(located) at/in/exist
+7	人	1867999	11.2827212715	ren2	man/person/people
+8	有	1782004	12.2036344486	you3	to have/there is/there are/to exist/to be
+9	我	1690048	13.0770261318	wo3	I/me/myself
+10	他	1595761	13.9016916951	ta1	he/him
+11	这	1552042	14.7037639291	zhe4/zhei4	this/these, this/these/(sometimes used before a measure word, especially in Beijing)
+12	个	1199580	15.3236890409	ge4	(a measure word)/individual
+13	们	1169853	15.9282516811	men	(plural marker for pronouns and a few animate nouns)
+14	中	1104541	16.4990620505	zhong1/zhong4	within/among/in/middle/center/while (doing sth)/during/China/Chinese, hit (the mark)
+15	来	1079469	17.056915583	lai2	to come
+16	上	1069575	17.6096560434	shang4	on/on top/upon/first (of two parts)/previous or last (week, etc.)/upper/higher/above/previous/to climb/to go into/above/to go up
+17	大	1054064	18.1543806496	da4/dai4	big/huge/large/major/great/wide/deep/oldest/eldest, doctor
+18	为	1039036	18.6913390088	wei2/wei4	act as/take...to be/to be/to do/to serve as/to become, because of/for/to
+19	和	1010465	19.2135322999	he2/he4/huo2/huo4	and/together with/with/peace/harmony/union, cap (a poem)/respond in singing, soft/warm, mix together/to blend
+20	国	985350	19.7227465323	guo2	country/state/nation
+21	地	969349	20.2236916858	de/di4	(subor. part. adverbial)/-ly, earth/ground/field/place/land
+22	到	965035	20.7224074283	dao4	to (a place)/until (a time)/up to/to go/to arrive
+23	以	910627	21.1930059251	yi3	to use/according to/so as to/in order to/by/with/because/Israel (abbrev.)
+24	说	874977	21.6451810318	shui4/shuo1	persuade (politically), to speak/to say
+25	时	833532	22.0759379787	shi2	o'clock/time/when/hour/season/period
+26	要	811011	22.4950564076	yao1/yao4	demand/ask/request/coerce, important/vital/to want/to be going to/must
+27	就	771108	22.8935535592	jiu4	at once/then/right away/only/(emphasis)/to approach/to move towards/to undertake
+28	出	755256	23.2838586328	chu1	to go out/to come out/to occur/to produce/to go beyond/to rise/to put forth/to occur/to happen/(a measure word for dramas, plays, or operas)
+29	会	734888	23.6636378269	hui4/kuai4	can/be possible/be able to/to assemble/to meet/to gather/to see/union/group/association, to balance an account/accounting
+30	可	723108	24.037329292	ke3	can/may/able to/certain(ly)/to suit/(particle used for emphasis)
+31	也	710259	24.404380585	ye3	also/too
+  </textarea>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <div id="chart_div"></div>
+  <script>
+    google.charts.load('current', {
+      packages: ['corechart', 'bar']
+    });
+    google.charts.setOnLoadCallback(drawBasic);
+
+    function drawBasic() {
+
+      var data = google.visualization.arrayToDataTable([
+        ['City', '2010 Population', ],
+        ['New York City, NY', 8175000],
+        ['Los Angeles, CA', 3792000],
+        ['Chicago, IL', 2695000],
+        ['Houston, TX', 2099000],
+        ['Philadelphia, PA', 1526000]
+      ]);
+
+      var options = {
+        title: 'Population of Largest U.S. Cities',
+        chartArea: {
+          width: '50%'
+        },
+        hAxis: {
+          title: 'Total Population',
+          minValue: 0
+        },
+        vAxis: {
+          title: 'City'
+        }
+      };
+
+      var chart = new google.visualization.BarChart(document.getElementById('chart_div'));
+
+      chart.draw(data, options);
+    }
+  </script>
+</body>
+
+</html>
