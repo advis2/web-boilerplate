@@ -4,9 +4,11 @@
   "private": true,
   "homepage": "https://advis2.github.io/web-boilerplate",
   "dependencies": {
+    "@storybook/storybook-deployer": "^2.8.10",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
+    "jekyll": "^3.0.0-beta1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
@@ -21,7 +23,8 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -b gh-pages -d build",
     "storybook": "start-storybook -p 6006 -s public",
-    "build-storybook": "build-storybook -s public"
+    "build-storybook": "build-storybook -s public",
+    "deploy-storybook": "gh-pages -b storybook-page -d storybook-static"
   },
   "eslintConfig": {
     "extends": [
