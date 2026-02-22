@@ -44,11 +44,7 @@ export const GlobalLayout: React.FC<{ children: ReactNode }> = ({
   };
 
   return (
-    <Container
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <Container>
       <AppBar>
         <ToggleButton onClick={toggleSidebar}>☰</ToggleButton>
         <Title>My Portfolio</Title>
