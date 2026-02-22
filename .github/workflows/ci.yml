@@ -67,6 +67,8 @@ jobs:
         if: github.ref == 'refs/heads/master'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      # pnpm dlx vercel --prod --confirm --token $VERCEL_TOKEN --cwd dist/apps/portfolio --local-build
         run: |
+          pnpm dlx vercel pull --yes
           pnpm dlx vercel build --cwd portfolio --prod
           pnpm dlx vercel deploy --prebuilt --cwd portfolio --prod --token $VERCEL_TOKEN
