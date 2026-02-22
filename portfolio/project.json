@@ -16,7 +16,7 @@
       "options": {
         "commands": [
           "nx build-next portfolio",
-          "cpx dist/apps/portfolio/.next/**/* ./.next"
+          "cpx \"dist/apps/portfolio/.next/**/*\" \"./.next\" --recursive"
         ],
         "parallel": false
       }
