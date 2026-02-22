@@ -58,3 +58,11 @@ jobs:
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: npx nx fix-ci
         if: always()
+        
+      # 8️⃣ Vercel 배포 (master 브랜치)
+      - name: Vercel Deploy
+        if: github.ref == 'refs/heads/master'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          pnpm dlx vercel --prod --confirm --token $VERCEL_TOKEN
