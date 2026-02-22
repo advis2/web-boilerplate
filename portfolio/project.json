@@ -8,9 +8,8 @@
     "build": {
       "executor": "@nx/next:build",
       "options": {
-        "outputPath": "dist/apps/portfolio",
-        "root": "portfolio"
-      }
+        "outputPath": "dist/apps/portfolio"
+     }
     },
     "serve": {
       "executor": "@nx/next:server",
