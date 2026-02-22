@@ -32,6 +32,7 @@ export const GlobalLayout: React.FC<{ children: ReactNode }> = ({
             <SidebarItem href="/about">About</SidebarItem>
             <SidebarItem href="/projects">Projects</SidebarItem>
             <SidebarItem href="/threejs">Threejs</SidebarItem>
+            <SidebarItem href="/othello">Othello</SidebarItem>
             <SidebarItem href="/contact">Contact</SidebarItem>
           </SidebarContent>
         </Sidebar>
