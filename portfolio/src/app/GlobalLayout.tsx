@@ -52,7 +52,7 @@ export default GlobalLayout;
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100vh;   /* ✅ 화면 전체 */
 `;
 
 const AppBar = styled.header`
@@ -78,21 +78,18 @@ const Title = styled.h1`
 `;
 
 const MainContent = styled.main`
-  display: flex;
   flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 `;
 
 // Sidebar 컴포넌트에 `isVisible`을 스타일링에만 사용
 const Sidebar = styled.aside<{ $isVisible: boolean }>`
-  background-color: #f4f4f4;
-  width: ${(props) => (props.$isVisible ? "200px" : "0")};
-  transition: width 0.3s ease;
+  flex: 0 0 ${(p) => (p.$isVisible ? "200px" : "0px")};
+  transition: flex-basis 0.3s ease;
   overflow: hidden;
-  height: 100vh;
-
-  @media (max-width: 768px) {
-    width: ${(props) => (props.$isVisible ? "100%" : "0")};
-  }
+  background: #f4f4f4;
 `;
 
 const SidebarContent = styled.div`
@@ -113,9 +110,11 @@ const SidebarItem = styled(Link)`
 
 const Content = styled.div`
   flex: 1;
+  min-width: 0;   /* 🔥 이거 중요 */
   padding: 20px;
+  overflow: hidden;
   background-color: #fff;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);0
 `;
 
 const Footer = styled.footer`

@@ -23,6 +23,9 @@ body {
   font-family: inherit;
   line-height: inherit;
   margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden; /* 🔥 스크롤 막기 */  
 }
 h1,
 h2,
