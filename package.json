@@ -6,6 +6,9 @@
     "clean": "nx reset",
     "client:portfolio": "nx serve portfolio"
   },
+  "engines": {
+    "node": ">=20"
+  },  
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.14.0",
