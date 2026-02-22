@@ -1,0 +1,22 @@
+{
+  "name": "portfolio",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "portfolio",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/next:build",
+      "options": {
+        "outputPath": "dist/apps/portfolio",
+        "root": "portfolio"
+      }
+    },
+    "serve": {
+      "executor": "@nx/next:server",
+      "options": {
+        "buildTarget": "portfolio:build"
+      }
+    }
+  }
+}
