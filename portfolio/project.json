@@ -8,7 +8,7 @@
     "build": {
       "executor": "@nx/next:build",
       "options": {
-        "outputPath": "dist/apps/portfolio"
+        "outputPath": "portfolio"
      }
     },
     "serve": {
