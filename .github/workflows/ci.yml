@@ -69,6 +69,6 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       # pnpm dlx vercel --prod --confirm --token $VERCEL_TOKEN --cwd dist/apps/portfolio --local-build
         run: |
-          pnpm dlx vercel pull --yes
+          pnpm dlx vercel pull --yes --token $VERCEL_TOKEN
           pnpm dlx vercel build --cwd portfolio --prod
           pnpm dlx vercel deploy --prebuilt --cwd portfolio --prod --token $VERCEL_TOKEN
