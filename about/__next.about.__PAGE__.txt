@@ -1,0 +1,5 @@
+1:"$Sreact.fragment"
+2:I[38528,["/web-boilerplate/_next/static/chunks/56b934150584c0b7.js"],"OutletBoundary"]
+3:"$Sreact.suspense"
+0:{"buildId":"XbfkmdDk4CbE8MKYuOJTm","rsc":["$","$1","c",{"children":[["$","div",null,{"className":"container","children":[["$","h1",null,{"className":"title","children":"About me"}],["$","p",null,{"className":"loading","children":"hello"}]]}],null,["$","$L2",null,{"children":["$","$3",null,{"name":"Next.MetadataOutlet","children":"$@4"}]}]]}],"loading":null,"isPartial":false}
+4:null
