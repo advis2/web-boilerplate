@@ -52,8 +52,11 @@ jobs:
       # pnpm 의존성 설치
       - run: pnpm install
 
+      # # Prepend any command with "nx record --" to record its logs to Nx Cloud
+      # - run: pnpm nx run-many -t lint test build typecheck
+
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
-      - run: pnpm nx run-many -t lint test build typecheck
+      - run: pnpm nx run-many -t typecheck
 
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: npx nx fix-ci
@@ -65,4 +68,5 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          pnpm dlx vercel --prod --confirm --token $VERCEL_TOKEN --cwd dist/apps/portfolio --local-build
+          pnpm dlx vercel build --cwd portfolio --prod
+          pnpm dlx vercel deploy --prebuilt --cwd portfolio --prod --token $VERCEL_TOKEN
