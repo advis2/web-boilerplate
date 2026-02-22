@@ -4,8 +4,8 @@
   "license": "MIT",
   "scripts": {
     "clean": "nx reset",
-    "client:portfolio": "nx serve portfolio",
-    "vercel-build": "nx build portfolio"
+    "serve": "nx serve portfolio",
+    "client:portfolio": "nx serve portfolio"
   },
   "engines": {
     "node": ">=20"
@@ -17,7 +17,8 @@
     "@mui/material": "^7.3.8",
     "next": "~16.0.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "styled-components": "^6.3.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

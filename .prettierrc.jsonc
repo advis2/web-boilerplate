@@ -1,0 +1,19 @@
+{
+  // 세미콜론을 항상 추가하도록 설정
+  "semi": true,
+
+  // 작은 따옴표 사용
+  "singleQuote": true,
+
+  // 마지막 항목에 쉼표 추가
+  "trailingComma": "es5",
+
+  /* 탭 너비를 2칸으로 설정 */
+  "tabWidth": 2,
+
+  // 탭 대신 공백 사용
+  "useTabs": false,
+
+  // 최대 줄 길이를 80자로 설정
+  "printWidth": 80
+}
