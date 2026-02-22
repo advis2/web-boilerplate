@@ -31,15 +31,21 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      # Corepack 활성화
+      - run: corepack enable
+
       # pnpm 활성화
-      - run: corepack enable && corepack prepare pnpm@latest --activate
+      - run: corepack prepare pnpm@latest --activate
+
+      # pnpm 설치 확인
+      - run: pnpm --version
 
       # pnpm 의존성 설치
       - run: pnpm install
 
       # Prepend any command with "nx record --" to record its logs to Nx Cloud
-      # - run: npx nx record -- echo Hello World
       - run: pnpm nx run-many -t lint test build typecheck
+
       # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
       - run: pnpm nx fix-ci
         if: always()
