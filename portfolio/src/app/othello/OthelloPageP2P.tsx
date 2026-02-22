@@ -1,27 +1,30 @@
-"use client";
+'use client';
 
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Player, SIZE, directions, createInitialBoard } from "./shared";
-import { Disc } from "./Disc";
-import * as Peer from 'peerjs'
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Player, SIZE, directions, createInitialBoard } from './shared';
+import { Disc } from './Disc';
+import { usePeerConnection } from './usePeerConnection';
 
 type Cell = Player;
 
 export function OthelloPageP2P() {
   const [board, setBoard] = useState<Cell[][]>(createInitialBoard());
-  const [displayBoard, setDisplayBoard] = useState<Cell[][]>(createInitialBoard());
-  const [turn, setTurn] = useState<Cell>("B");
+  const [displayBoard, setDisplayBoard] =
+    useState<Cell[][]>(createInitialBoard());
+  const [turn, setTurn] = useState<Cell>('B');
   const [gameOver, setGameOver] = useState(false);
+  const { peerId, connected, connRef, peerRef, connectToPeer } =
+    usePeerConnection();
+  const [myTurn, setMyTurn] = useState<Cell>('B');
+  const opponent = (p: Player) => (p === 'B' ? 'W' : 'B');
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  const [peerId, setPeerId] = useState("");
-  const [myTurn, setMyTurn] = useState<Cell>("B");
-  const [connected, setConnected] = useState(false);  
-  const connRef = useRef<Peer.DataConnection | null>(null);
-  const peerRef = useRef<Peer.Peer | null>(null);
-
-  const opponent = (p: Player) => (p === "B" ? "W" : "B");
-
-  const isValidMove = (b: Player[][], row: number, col: number, player: Player) => {
+  const isValidMove = (
+    b: Player[][],
+    row: number,
+    col: number,
+    player: Player
+  ) => {
     if (b[row][col] !== null) return false;
     const opp = opponent(player);
     return directions.some(([dx, dy]) => {
@@ -33,7 +36,9 @@ export function OthelloPageP2P() {
         y += dy;
         hasOpp = true;
       }
-      return hasOpp && x >= 0 && x < SIZE && y >= 0 && y < SIZE && b[x][y] === player;
+      return (
+        hasOpp && x >= 0 && x < SIZE && y >= 0 && y < SIZE && b[x][y] === player
+      );
     });
   };
 
@@ -47,8 +52,13 @@ export function OthelloPageP2P() {
     return moves;
   };
 
-  const applyMove = (b: Player[][], row: number, col: number, player: Player) => {
-    const newBoard = b.map(r => [...r]);
+  const applyMove = (
+    b: Player[][],
+    row: number,
+    col: number,
+    player: Player
+  ) => {
+    const newBoard = b.map((r) => [...r]);
     newBoard[row][col] = player;
     const opp = opponent(player);
 
@@ -57,13 +67,25 @@ export function OthelloPageP2P() {
       let y = col + dy;
       const toFlip: [number, number][] = [];
 
-      while (x >= 0 && x < SIZE && y >= 0 && y < SIZE && newBoard[x][y] === opp) {
+      while (
+        x >= 0 &&
+        x < SIZE &&
+        y >= 0 &&
+        y < SIZE &&
+        newBoard[x][y] === opp
+      ) {
         toFlip.push([x, y]);
         x += dx;
         y += dy;
       }
 
-      if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && newBoard[x][y] === player) {
+      if (
+        x >= 0 &&
+        x < SIZE &&
+        y >= 0 &&
+        y < SIZE &&
+        newBoard[x][y] === player
+      ) {
         toFlip.forEach(([fx, fy]) => (newBoard[fx][fy] = player));
       }
     });
@@ -72,155 +94,238 @@ export function OthelloPageP2P() {
   };
 
   const scores = useMemo(() => {
-    let black = 0, white = 0;
-    board.forEach(row => row.forEach(c => { if (c === "B") black++; if (c === "W") white++; }));
+    let black = 0,
+      white = 0;
+    board.forEach((row) =>
+      row.forEach((c) => {
+        if (c === 'B') black++;
+        if (c === 'W') white++;
+      })
+    );
     return { black, white };
   }, [board]);
 
   // -----------------------------
   // PeerJS 초기화
   // -----------------------------
-  useEffect(() => {
-    import("peerjs").then(({ Peer }) => {
-      const peer = new Peer("", {
-        host: "0.peerjs.com",
-        port: 443,
-        path: "/",
-        secure: true,
-      });
-      peerRef.current = peer;
-
-      peer.on("open", (id: string) => {
-        setPeerId(id);
-        console.log("My Peer ID:", id);
-      });
-
-      // 연결을 수락한 쪽(peer.on("connection"))
-      peer.on("connection", (conn: any) => {
-        connRef.current = conn;
-        setConnected(true);
-
-        // 내 역할을 흑/백 반대로 설정
-        setMyTurn("W");      // 연결된 쪽은 백
-
-        conn.on("data", (data: any) => {
-          if (data.board && data.turn) {
-            setBoard(data.board);
-            setDisplayBoard(data.board);
-            setTurn(data.turn);
-          }
-          if (data.role) {
-            setMyTurn(data.role === "B" ? "W" : "B"); // 상대 역할 보고 내 역할 결정
-          }          
-        });
-
-        conn.on("close", () => {
-          setConnected(false);
-        });
-      });
-    });
-  }, []);
 
   // 상대방에 연결
-  const connectToPeer = (id: string) => {
-    if (!peerRef.current) return;
-    if(peerId === id) return;
+  useEffect(() => {
+    if (connRef.current) {
+      const conn = connRef.current;
+      const openHandler = () => {
+        setMyTurn('B'); // connect를 시도한 사람은 B
+        setTurn('B'); // 게임 시작은 흑
+        conn.send({ role: 'B' }); // 나는 흑
+      };
+      const closeHandler = handleDisconnect;
+      const dataHandler = (data: any) => {
+        if (data.board && data.turn) {
+          const newBoard = data.board;
+          // 🔥 이전 board 대신 setBoard callback으로 접근
+          setBoard((prevBoard) => {
+            setIsAnimating(true);
+            const flips = new Set<string>();
+            for (let i = 0; i < SIZE; i++) {
+              for (let j = 0; j < SIZE; j++) {
+                if (prevBoard[i][j] && prevBoard[i][j] !== newBoard[i][j]) {
+                  flips.add(`${i}-${j}`);
+                }
+              }
+            }
+            setFlippingCells(flips);
+          
+            setTimeout(() => {
+              setDisplayBoard(newBoard);
+              setFlippingCells(new Set());
+              setTurn(data.turn);
+              setIsAnimating(false);
+            }, 700);
+          
+            return newBoard;
+          });
+        }
+      };
+      conn.on('data', dataHandler);
+      conn.on('open', openHandler);
+      conn.on('close', closeHandler);
+      return () => {
+        conn.off('data', dataHandler);
+        conn.off('open', openHandler);
+        conn.off('close', closeHandler);
+      };
+    }
+    return undefined;
+  }, [connRef.current]);
 
-    const conn = peerRef.current.connect(id);
-    connRef.current = conn;
+  // 상대방에 연결
+  useEffect(() => {
+    if (peerRef.current) {
+      const conn = peerRef.current;
+      const openHandler = () => {
+        // 내 역할을 흑/백 반대로 설정
+        setMyTurn('W'); // 연결된 쪽은 백
+      };
+      const closeHandler = handleDisconnect;
+      const dataHandler = (data: any) => {
+        if (data.board && data.turn) {
+          setIsAnimating(true);
+          const newBoard = data.board;
+          // 🔥 이전 board 대신 setBoard callback으로 접근
+          setBoard((prevBoard) => {
+            const flips = new Set<string>();
+            for (let i = 0; i < SIZE; i++) {
+              for (let j = 0; j < SIZE; j++) {
+                if (prevBoard[i][j] && prevBoard[i][j] !== newBoard[i][j]) {
+                  flips.add(`${i}-${j}`);
+                }
+              }
+            }
+            setFlippingCells(flips);
+          
+            setTimeout(() => {
+              setDisplayBoard(newBoard);
+              setFlippingCells(new Set());
+              setTurn(data.turn);
+              setIsAnimating(false);
+            }, 700);
+          
+            return newBoard;
+          });
+        }
+        if (data.role) {
+          setMyTurn(data.role === 'B' ? 'W' : 'B'); // 상대 역할 보고 내 역할 결정
+        }
+      };
+      conn.on('connection', dataHandler);
+      conn.on('open', openHandler);
+      conn.on('close', closeHandler);
+      return () => {
+        conn.off('connection', dataHandler);
+        conn.off('open', openHandler);
+        conn.off('close', closeHandler);
+      };
+    }
+    return undefined;
+  }, [connRef.current]);
 
-    // 연결되면 내가 흑, 상대는 백
-    setMyTurn("B");          // connect를 시도한 사람은 B
-    setTurn("B");            // 게임 시작은 흑
-
-    conn.on("open", () => setConnected(true));
-    // 역할을 상대에게 전송
-    conn.on("open", () => {
-      conn.send({ role: "B" }); // 나는 흑
-    });    
-    conn.on("data", (data: any) => {
-      if (data.board && data.turn) {
-        setBoard(data.board);
-        setDisplayBoard(data.board);
-        setTurn(data.turn);
-      }
-    });
-    conn.on("close", () => setConnected(false));
-  };
   const [flippingCells, setFlippingCells] = useState<Set<string>>(new Set());
 
   // -----------------------------
   // 클릭 처리
   // -----------------------------
   const handleClick = (row: number, col: number) => {
-    if (gameOver || turn !== myTurn) return;
+    if (gameOver || turn !== myTurn || isAnimating) return;
     if (!isValidMove(board, row, col, turn)) return;
 
     const newBoard = applyMove(board, row, col, turn);
-    setBoard(newBoard);
+    const nextTurn = opponent(turn);
+    
     // P2P 전송
     if (connRef.current && connected) {
       connRef.current.send({ board: newBoard, turn: opponent(turn) });
     }
-
-    // 🔥 바뀐 셀 찾기
-    const flips = new Set<string>();
-    for (let i = 0; i < SIZE; i++) {
-      for (let j = 0; j < SIZE; j++) {
-        if (board[i][j] && board[i][j] !== newBoard[i][j]) {
-          flips.add(`${i}-${j}`);
+    // 🔥 이전 board 대신 setBoard callback으로 접근
+    setBoard((prevBoard) => {
+      setIsAnimating(true);
+      const flips = new Set<string>();
+      for (let i = 0; i < SIZE; i++) {
+        for (let j = 0; j < SIZE; j++) {
+          if (prevBoard[i][j] && prevBoard[i][j] !== newBoard[i][j]) {
+            flips.add(`${i}-${j}`);
+          }
         }
       }
-    }
-    setFlippingCells(flips);
-    // **애니메이션 끝난 후 displayBoard 업데이트**
-    setTimeout(() => {
-      setDisplayBoard(newBoard);
-      setFlippingCells(new Set());
-      setTurn(opponent(turn));
-    }, 700); // transition duration과 동일하게
-
+      setFlippingCells(flips);
+    
+      setTimeout(() => {
+        setDisplayBoard(newBoard);
+        setFlippingCells(new Set());
+        setTurn(nextTurn);
+        setIsAnimating(false);
+      }, 700);
+    
+      return newBoard;
+    });
   };
 
   const resetGame = () => {
     const empty = createInitialBoard();
     setBoard(empty);
     setDisplayBoard(empty);
-    setTurn("B");
+    setTurn('B');
     setGameOver(false);
 
     if (connRef.current && connected) {
-      connRef.current.send({ board: empty, turn: "B" });
+      connRef.current.send({ board: empty, turn: 'B' });
     }
   };
 
   const validMoves = getValidMoves(board, turn);
 
+  // -----------------------------
+  // 브라우저 닫기 / 언마운트 처리
+  // -----------------------------
+  useEffect(() => {
+    const handleUnload = () => {
+      if (connRef.current) {
+        connRef.current.close(); // 연결 종료
+      }
+      if (peerRef.current) {
+        peerRef.current.destroy(); // Peer 종료
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      handleUnload(); // 언마운트 시에도 안전하게 종료
+    };
+  }, []);
+
+  // 연결 끊김 처리
+  const handleDisconnect = () => {
+    connRef.current = null;
+    setBoard(createInitialBoard());
+    setDisplayBoard(createInitialBoard());
+    setTurn('B');
+    setGameOver(false);
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h1>Othello P2P</h1>
       <p>My Peer ID: {peerId}</p>
-      <p>Status: {connected ? "Connected ✅" : "Not connected ❌"}</p>
+      <p>Status: {connected ? 'Connected ✅' : 'Not connected ❌'}</p>
 
       {!connected && (
         <div>
-          <input type="text" placeholder="Peer ID to connect" id="peer-id-input" />
-          <button onClick={() => {
-            const val = (document.getElementById("peer-id-input") as HTMLInputElement).value;
-            connectToPeer(val);
-          }}>Connect</button>
+          <input
+            type="text"
+            placeholder="Peer ID to connect"
+            id="peer-id-input"
+          />
+          <button
+            onClick={() => {
+              const val = (
+                document.getElementById('peer-id-input') as HTMLInputElement
+              ).value;
+              connectToPeer(val);
+            }}
+          >
+            Connect
+          </button>
         </div>
       )}
 
-
       {gameOver ? (
         <h2>
-          Game Over —{scores.black > scores.white && " Black Wins"}
-          {scores.white > scores.black && " White Wins"}
-          {scores.white === scores.black && " Draw"}
+          Game Over —{scores.black > scores.white && ' Black Wins'}
+          {scores.white > scores.black && ' White Wins'}
+          {scores.white === scores.black && ' Draw'}
         </h2>
       ) : (
-        <p>Turn: {turn === "B" ? "Black ⚫" : "White ⚪ (AI)"}</p>
+        <p>Turn: {turn === 'B' ? 'Black ⚫' : 'White ⚪ (AI)'}</p>
       )}
 
       <p>
@@ -229,10 +334,10 @@ export function OthelloPageP2P() {
 
       <div
         style={{
-          display: "grid",
+          display: 'grid',
           gridTemplateColumns: `repeat(${SIZE}, 50px)`,
           gap: 2,
-          justifyContent: "center",
+          justifyContent: 'center',
           marginTop: 20,
         }}
       >
@@ -246,11 +351,12 @@ export function OthelloPageP2P() {
                 style={{
                   width: 50,
                   height: 50,
-                  background: (turn === myTurn) && highlight ? "#66bb6a" : "#2e7d32",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: (turn === myTurn) && highlight ? "pointer" : "default",
+                  background:
+                    (turn === myTurn && highlight && !isAnimating) ? '#66bb6a' : '#2e7d32',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: (turn === myTurn && highlight && !isAnimating) ? 'pointer' : 'default',
                 }}
               >
                 <Disc value={cell} flipping={flippingCells.has(`${i}-${j}`)} />
