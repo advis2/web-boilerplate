@@ -47,3 +47,5 @@ out
 
 test-output
 vite.config.*.timestamp*
+
+portfolio/next-env.d.ts
