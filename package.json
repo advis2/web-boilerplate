@@ -4,7 +4,9 @@
   "license": "MIT",
   "scripts": {
     "clean": "nx reset",
-    "client:portfolio": "nx serve portfolio"
+    "client:portfolio": "nx serve portfolio",
+
+    "vercel-build": "nx build portfolio"
   },
   "engines": {
     "node": ">=20"
