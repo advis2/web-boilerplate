@@ -61,7 +61,6 @@ jobs:
       - name: Build Next.js site
         run: |
           pnpm nx build portfolio  
-          pnpm nx export portfolio  
 
       # 5. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages

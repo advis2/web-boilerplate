@@ -11,12 +11,6 @@
         "outputPath": "dist/apps/portfolio"
       }
     },
-    "export": {
-      "executor": "@nx/next:export",
-      "options": {
-        "outputPath": "dist/apps/portfolio/out"
-      }
-    },    
     "serve": {
       "executor": "@nx/next:server",
       "options": {
