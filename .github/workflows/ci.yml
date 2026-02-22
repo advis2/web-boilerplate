@@ -8,8 +8,9 @@ on:
 
 permissions:
   actions: read
-  contents: read
-
+  contents: write    # 배포 및 푸시 작업을 위한 쓰기 권한
+  id-token: write    # GitHub Actions에서 JWT 토큰을 생성할 수 있는 권한 (선택 사항, 보안 관련)
+  
 jobs:
   main:
     runs-on: ubuntu-latest
