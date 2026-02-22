@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 type Player = "B" | "W" | null;
 const SIZE = 8;
+const AI_PLAYER: Player = "W";
 
 const directions = [
   [0, 1],
@@ -17,60 +18,70 @@ const directions = [
 ];
 
 function createInitialBoard(): Player[][] {
-  const board: Player[][] = Array.from({ length: SIZE }, () =>
-    Array(SIZE).fill(null),
+  const board = Array.from({ length: SIZE }, () =>
+    Array<Player>(SIZE).fill(null),
   );
-
   board[3][3] = "W";
   board[4][4] = "W";
   board[3][4] = "B";
   board[4][3] = "B";
-
   return board;
 }
 
 export default function OthelloPage() {
   const [board, setBoard] = useState<Player[][]>(createInitialBoard());
   const [turn, setTurn] = useState<Player>("B");
+  const [gameOver, setGameOver] = useState(false);
 
   const opponent = (p: Player) => (p === "B" ? "W" : "B");
 
-  const isValidMove = (row: number, col: number, player: Player) => {
-    if (board[row][col] !== null) return false;
+  const isValidMove = (
+    b: Player[][],
+    row: number,
+    col: number,
+    player: Player,
+  ) => {
+    if (b[row][col] !== null) return false;
     const opp = opponent(player);
 
     return directions.some(([dx, dy]) => {
       let x = row + dx;
       let y = col + dy;
-      let hasOppBetween = false;
+      let hasOpp = false;
 
-      while (x >= 0 && x < SIZE && y >= 0 && y < SIZE && board[x][y] === opp) {
+      while (x >= 0 && x < SIZE && y >= 0 && y < SIZE && b[x][y] === opp) {
         x += dx;
         y += dy;
-        hasOppBetween = true;
+        hasOpp = true;
       }
 
-      if (
-        hasOppBetween &&
-        x >= 0 &&
-        x < SIZE &&
-        y >= 0 &&
-        y < SIZE &&
-        board[x][y] === player
-      ) {
-        return true;
-      }
-
-      return false;
+      return (
+        hasOpp && x >= 0 && x < SIZE && y >= 0 && y < SIZE && b[x][y] === player
+      );
     });
   };
 
-  const makeMove = (row: number, col: number) => {
-    if (!isValidMove(row, col, turn)) return;
+  const getValidMoves = (b: Player[][], player: Player) => {
+    const moves: [number, number][] = [];
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE; j++) {
+        if (isValidMove(b, i, j, player)) {
+          moves.push([i, j]);
+        }
+      }
+    }
+    return moves;
+  };
 
-    const newBoard = board.map((r) => [...r]);
-    newBoard[row][col] = turn;
-    const opp = opponent(turn);
+  const applyMove = (
+    b: Player[][],
+    row: number,
+    col: number,
+    player: Player,
+  ) => {
+    const newBoard = b.map((r) => [...r]);
+    newBoard[row][col] = player;
+    const opp = opponent(player);
 
     directions.forEach(([dx, dy]) => {
       let x = row + dx;
@@ -89,20 +100,25 @@ export default function OthelloPage() {
         y += dy;
       }
 
-      if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && newBoard[x][y] === turn) {
+      if (
+        x >= 0 &&
+        x < SIZE &&
+        y >= 0 &&
+        y < SIZE &&
+        newBoard[x][y] === player
+      ) {
         toFlip.forEach(([fx, fy]) => {
-          newBoard[fx][fy] = turn;
+          newBoard[fx][fy] = player;
         });
       }
     });
 
-    setBoard(newBoard);
-    setTurn(opp);
+    return newBoard;
   };
 
   const scores = useMemo(() => {
-    let black = 0;
-    let white = 0;
+    let black = 0,
+      white = 0;
     board.forEach((row) =>
       row.forEach((cell) => {
         if (cell === "B") black++;
@@ -112,16 +128,134 @@ export default function OthelloPage() {
     return { black, white };
   }, [board]);
 
+  // ===========================
+  // AI (Minimax)
+  // ===========================
+
+  const evaluate = (b: Player[][]) => {
+    let score = 0;
+    b.forEach((row) =>
+      row.forEach((cell) => {
+        if (cell === AI_PLAYER) score += 1;
+        if (cell === opponent(AI_PLAYER)) score -= 1;
+      }),
+    );
+    return score;
+  };
+
+  const minimax = (
+    b: Player[][],
+    depth: number,
+    player: Player,
+    maximizing: boolean,
+  ): number => {
+    const moves = getValidMoves(b, player);
+    if (depth === 0 || moves.length === 0) {
+      return evaluate(b);
+    }
+
+    if (maximizing) {
+      let maxEval = -Infinity;
+      for (const [r, c] of moves) {
+        const newBoard = applyMove(b, r, c, player);
+        const evalScore = minimax(newBoard, depth - 1, opponent(player), false);
+        maxEval = Math.max(maxEval, evalScore);
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (const [r, c] of moves) {
+        const newBoard = applyMove(b, r, c, player);
+        const evalScore = minimax(newBoard, depth - 1, opponent(player), true);
+        minEval = Math.min(minEval, evalScore);
+      }
+      return minEval;
+    }
+  };
+
+  const makeAIMove = () => {
+    const moves = getValidMoves(board, AI_PLAYER);
+    if (moves.length === 0) return;
+
+    let bestScore = -Infinity;
+    let bestMove = moves[0];
+
+    for (const [r, c] of moves) {
+      const newBoard = applyMove(board, r, c, AI_PLAYER);
+      const score = minimax(newBoard, 3, opponent(AI_PLAYER), false);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = [r, c];
+      }
+    }
+
+    const updated = applyMove(board, bestMove[0], bestMove[1], AI_PLAYER);
+    setBoard(updated);
+    setTurn(opponent(AI_PLAYER));
+  };
+
+  // ===========================
+  // 턴 & 패스 & 종료 처리
+  // ===========================
+
+  useEffect(() => {
+    if (gameOver) return;
+
+    const currentMoves = getValidMoves(board, turn);
+    const opponentMoves = getValidMoves(board, opponent(turn));
+
+    if (currentMoves.length === 0) {
+      if (opponentMoves.length === 0) {
+        setGameOver(true);
+      } else {
+        setTurn(opponent(turn)); // 패스
+      }
+    }
+  }, [board, turn]);
+
+  useEffect(() => {
+    if (!gameOver && turn === AI_PLAYER) {
+      setIsThinking(true);
+      const timer = setTimeout(() => {
+        makeAIMove();
+        setIsThinking(false);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [turn]);
+
+  const handleClick = (row: number, col: number) => {
+    if (turn === AI_PLAYER || gameOver || isThinking) return;
+    if (!isValidMove(board, row, col, turn)) return;
+
+    const newBoard = applyMove(board, row, col, turn);
+    setBoard(newBoard);
+    setTurn(opponent(turn));
+  };
+
   const resetGame = () => {
     setBoard(createInitialBoard());
     setTurn("B");
+    setGameOver(false);
   };
+
+  const [isThinking, setIsThinking] = useState(false);
+  const validMoves =
+    turn === AI_PLAYER || isThinking ? [] : getValidMoves(board, turn);
 
   return (
     <div style={{ padding: 40, textAlign: "center" }}>
-      <h1>Othello Game</h1>
+      <h1>Othello Game (vs AI)</h1>
 
-      <p>Turn: {turn === "B" ? "Black ⚫" : "White ⚪"}</p>
+      {gameOver ? (
+        <h2>
+          Game Over —{scores.black > scores.white && " Black Wins"}
+          {scores.white > scores.black && " White Wins"}
+          {scores.white === scores.black && " Draw"}
+        </h2>
+      ) : (
+        <p>Turn: {turn === "B" ? "Black ⚫" : "White ⚪ (AI)"}</p>
+      )}
 
       <p>
         ⚫ {scores.black} : ⚪ {scores.white}
@@ -129,6 +263,8 @@ export default function OthelloPage() {
 
       <div
         style={{
+          opacity: isThinking ? 0.6 : 1,
+          pointerEvents: isThinking ? "none" : "auto",
           display: "grid",
           gridTemplateColumns: `repeat(${SIZE}, 50px)`,
           gap: 2,
@@ -137,42 +273,42 @@ export default function OthelloPage() {
         }}
       >
         {board.map((row, i) =>
-          row.map((cell, j) => (
-            <div
-              key={`${i}-${j}`}
-              onClick={() => makeMove(i, j)}
-              style={{
-                width: 50,
-                height: 50,
-                background: "#2e7d32",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: isValidMove(i, j, turn) ? "pointer" : "default",
-              }}
-            >
-              {cell && (
-                <div
-                  style={{
-                    width: 35,
-                    height: 35,
-                    borderRadius: "50%",
-                    background: cell === "B" ? "black" : "white",
-                  }}
-                />
-              )}
-            </div>
-          )),
+          row.map((cell, j) => {
+            const highlight = validMoves.some(([r, c]) => r === i && c === j);
+
+            return (
+              <div
+                key={`${i}-${j}`}
+                onClick={() => handleClick(i, j)}
+                style={{
+                  width: 50,
+                  height: 50,
+                  background: highlight ? "#66bb6a" : "#2e7d32",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: highlight ? "pointer" : "default",
+                }}
+              >
+                {cell && (
+                  <div
+                    style={{
+                      width: 35,
+                      height: 35,
+                      borderRadius: "50%",
+                      background: cell === "B" ? "black" : "white",
+                    }}
+                  />
+                )}
+              </div>
+            );
+          }),
         )}
       </div>
 
       <button
         onClick={resetGame}
-        style={{
-          marginTop: 20,
-          padding: "8px 16px",
-          cursor: "pointer",
-        }}
+        style={{ marginTop: 20, padding: "8px 16px", cursor: "pointer" }}
       >
         Reset Game
       </button>
