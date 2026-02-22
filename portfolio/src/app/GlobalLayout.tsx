@@ -1,47 +1,84 @@
 "use client";
 
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useState, useRef } from "react";
 import styled from "styled-components";
 import Link from "next/link";
 
-// GlobalLayout 컴포넌트 정의
 export const GlobalLayout: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
+  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchCurrentX = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current !== null) {
+      touchCurrentX.current = e.touches[0].clientX;
+      const deltaX = touchCurrentX.current - touchStartX.current;
+
+      // 왼쪽 스와이프 (닫기)
+      if (isSidebarVisible && deltaX < -50) {
+        setIsSidebarVisible(false);
+        touchStartX.current = null;
+      }
+
+      // 오른쪽 스와이프 (열기)
+      if (!isSidebarVisible && deltaX > 50) {
+        setIsSidebarVisible(true);
+        touchStartX.current = null;
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartX.current = null;
+    touchCurrentX.current = 0;
+  };
 
   const toggleSidebar = () => {
     setIsSidebarVisible(!isSidebarVisible);
   };
 
   return (
-    <Container>
-      {/* 상단 앱 바 */}
+    <Container
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <AppBar>
         <ToggleButton onClick={toggleSidebar}>☰</ToggleButton>
         <Title>My Portfolio</Title>
       </AppBar>
 
-      {/* 메인 컨텐츠 영역 */}
       <MainContent>
-        {/* 왼쪽 사이드바 */}
-        {/* styled-components에서는 $로 시작하는 prop은 자동으로 DOM에 전달되지 않음. */}
-        <Sidebar $isVisible={isSidebarVisible}>
+        <SidebarOverlay
+          $isVisible={isSidebarVisible}
+          onClick={() => setIsSidebarVisible(false)}
+        />
+
+        <Sidebar
+          $isVisible={isSidebarVisible}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           <SidebarContent>
             <SidebarItem href="/">Home</SidebarItem>
             <SidebarItem href="/about">About</SidebarItem>
             <SidebarItem href="/projects">Projects</SidebarItem>
             <SidebarItem href="/threejs">Threejs</SidebarItem>
-            <SidebarItem href="/othello">othello</SidebarItem>
+            <SidebarItem href="/othello">Othello</SidebarItem>
             <SidebarItem href="/contact">Contact</SidebarItem>
           </SidebarContent>
         </Sidebar>
 
-        {/* 페이지 내용 (내부 페이지 전환 내용) */}
         <Content>{children}</Content>
       </MainContent>
 
-      {/* 하단 푸터 */}
       <Footer>© 2026 My Portfolio</Footer>
     </Container>
   );
@@ -49,11 +86,12 @@ export const GlobalLayout: React.FC<{ children: ReactNode }> = ({
 
 export default GlobalLayout;
 
-// Styled Components
+// ================= Styled Components =================
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100vh;   /* ✅ 화면 전체 */
+  height: 100vh;
 `;
 
 const AppBar = styled.header`
@@ -62,6 +100,9 @@ const AppBar = styled.header`
   display: flex;
   align-items: center;
   padding: 10px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1100;
 `;
 
 const ToggleButton = styled.button`
@@ -71,6 +112,10 @@ const ToggleButton = styled.button`
   font-size: 24px;
   margin-right: 20px;
   cursor: pointer;
+
+  @media (min-width: 769px) {
+    display: none;
+  }
 `;
 
 const Title = styled.h1`
@@ -82,15 +127,37 @@ const MainContent = styled.main`
   flex: 1;
   display: flex;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
+  position: relative;
 `;
 
-// Sidebar 컴포넌트에 `isVisible`을 스타일링에만 사용
+const SidebarOverlay = styled.div<{ $isVisible: boolean }>`
+  display: none;
+  @media (max-width: 768px) {
+    display: ${(p) => (p.$isVisible ? "block" : "none")};
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 900;
+  }
+`;
+
 const Sidebar = styled.aside<{ $isVisible: boolean }>`
   flex: 0 0 ${(p) => (p.$isVisible ? "200px" : "0px")};
   transition: flex-basis 0.3s ease;
   overflow: hidden;
   background: #f4f4f4;
+
+  @media (max-width: 768px) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 200px;
+    transform: ${(p) => (p.$isVisible ? "translateX(0)" : "translateX(-100%)")};
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
 `;
 
 const SidebarContent = styled.div`
@@ -111,11 +178,15 @@ const SidebarItem = styled(Link)`
 
 const Content = styled.div`
   flex: 1;
-  min-width: 0;   /* 🔥 이거 중요 */
+  min-width: 0;
   padding: 20px;
-  overflow: hidden;
+  overflow: auto;
   background-color: #fff;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);0
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 768px) {
+    padding: 15px;
+  }
 `;
 
 const Footer = styled.footer`
