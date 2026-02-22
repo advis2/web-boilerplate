@@ -220,14 +220,19 @@ export default function OthelloPage() {
   }, [board, turn]);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
     if (!gameOver && turn === AI_PLAYER) {
       setIsThinking(true);
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         makeAIMove();
         setIsThinking(false);
       }, 400);
-      return () => clearTimeout(timer);
     }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [turn]);
 
   const handleClick = (row: number, col: number) => {
