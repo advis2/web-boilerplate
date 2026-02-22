@@ -40,6 +40,15 @@ jobs:
       # pnpm 설치 확인
       - run: pnpm --version
 
+      # pnpm cache 추가
+      - name: Cache pnpm store
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-
+
       # pnpm 의존성 설치
       - run: pnpm install
 
