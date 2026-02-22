@@ -5,12 +5,22 @@
   "projectType": "application",
   "tags": [],
   "targets": {
-    "build": {
+    "build-next": {
       "executor": "@nx/next:build",
       "options": {
-        "outputPath": "portfolio"
-     }
+        "outputPath": "dist/apps/portfolio"
+      }
     },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx build-next portfolio",
+          "cpx dist/apps/portfolio/.next/**/* ./.next"
+        ],
+        "parallel": false
+      }
+    },    
     "serve": {
       "executor": "@nx/next:server",
       "options": {
