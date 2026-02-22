@@ -239,6 +239,8 @@ export default function OthelloPage() {
     if (turn === AI_PLAYER || gameOver || isThinking) return;
     if (!isValidMove(board, row, col, turn)) return;
 
+    setIsThinking(true);
+    
     const newBoard = applyMove(board, row, col, turn);
     setBoard(newBoard);
 
@@ -263,6 +265,7 @@ export default function OthelloPage() {
 
   const resetGame = () => {
     setBoard(createInitialBoard());
+    setDisplayBoard(createInitialBoard());
     setTurn("B");
     setGameOver(false);
   };
@@ -312,11 +315,11 @@ export default function OthelloPage() {
                 style={{
                   width: 50,
                   height: 50,
-                  background: highlight ? "#66bb6a" : "#2e7d32",
+                  background: !isThinking && highlight ? "#66bb6a" : "#2e7d32",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: highlight ? "pointer" : "default",
+                  cursor: !isThinking && highlight ? "pointer" : "default",
                 }}
               >
                 <Disc value={cell} flipping={flippingCells.has(`${i}-${j}`)} />
