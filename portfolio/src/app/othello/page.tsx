@@ -1,21 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-
-type Player = "B" | "W" | null;
-const SIZE = 8;
-const AI_PLAYER: Player = "W";
-
-const directions = [
-  [0, 1],
-  [1, 0],
-  [0, -1],
-  [-1, 0],
-  [1, 1],
-  [1, -1],
-  [-1, 1],
-  [-1, -1],
-];
+import { AI_PLAYER, directions, Player, SIZE } from "./shared";
+import { Disc } from "./Disc";
 
 function createInitialBoard(): Player[][] {
   const board = Array.from({ length: SIZE }, () =>
@@ -30,6 +17,8 @@ function createInitialBoard(): Player[][] {
 
 export default function OthelloPage() {
   const [board, setBoard] = useState<Player[][]>(createInitialBoard());
+  const [displayBoard, setDisplayBoard] =
+    useState<Player[][]>(createInitialBoard());
   const [turn, setTurn] = useState<Player>("B");
   const [gameOver, setGameOver] = useState(false);
 
@@ -189,9 +178,26 @@ export default function OthelloPage() {
       }
     }
 
-    const updated = applyMove(board, bestMove[0], bestMove[1], AI_PLAYER);
-    setBoard(updated);
-    setTurn(opponent(AI_PLAYER));
+    const newBoard = applyMove(board, bestMove[0], bestMove[1], AI_PLAYER);
+    setBoard(newBoard);
+
+    // 🔥 바뀐 셀 찾기
+    const flips = new Set<string>();
+
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE; j++) {
+        if (board[i][j] && board[i][j] !== newBoard[i][j]) {
+          flips.add(`${i}-${j}`);
+        }
+      }
+    }
+    setFlippingCells(flips);
+    // **애니메이션 끝난 후 displayBoard 업데이트**
+    setTimeout(() => {
+      setDisplayBoard(newBoard);
+      setFlippingCells(new Set());
+      setTurn(opponent(turn));
+    }, 700); // transition duration과 동일하게
   };
 
   // ===========================
@@ -230,7 +236,24 @@ export default function OthelloPage() {
 
     const newBoard = applyMove(board, row, col, turn);
     setBoard(newBoard);
-    setTurn(opponent(turn));
+
+    // 🔥 바뀐 셀 찾기
+    const flips = new Set<string>();
+
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE; j++) {
+        if (board[i][j] && board[i][j] !== newBoard[i][j]) {
+          flips.add(`${i}-${j}`);
+        }
+      }
+    }
+    setFlippingCells(flips);
+    // **애니메이션 끝난 후 displayBoard 업데이트**
+    setTimeout(() => {
+      setDisplayBoard(newBoard);
+      setFlippingCells(new Set());
+      setTurn(opponent(turn));
+    }, 700); // transition duration과 동일하게
   };
 
   const resetGame = () => {
@@ -242,6 +265,7 @@ export default function OthelloPage() {
   const [isThinking, setIsThinking] = useState(false);
   const validMoves =
     turn === AI_PLAYER || isThinking ? [] : getValidMoves(board, turn);
+  const [flippingCells, setFlippingCells] = useState<Set<string>>(new Set());
 
   return (
     <div style={{ padding: 40, textAlign: "center" }}>
@@ -272,7 +296,7 @@ export default function OthelloPage() {
           marginTop: 20,
         }}
       >
-        {board.map((row, i) =>
+        {displayBoard.map((row, i) =>
           row.map((cell, j) => {
             const highlight = validMoves.some(([r, c]) => r === i && c === j);
 
@@ -290,16 +314,7 @@ export default function OthelloPage() {
                   cursor: highlight ? "pointer" : "default",
                 }}
               >
-                {cell && (
-                  <div
-                    style={{
-                      width: 35,
-                      height: 35,
-                      borderRadius: "50%",
-                      background: cell === "B" ? "black" : "white",
-                    }}
-                  />
-                )}
+                <Disc value={cell} flipping={flippingCells.has(`${i}-${j}`)} />
               </div>
             );
           }),
