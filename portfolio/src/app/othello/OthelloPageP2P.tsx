@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Player, SIZE, directions, createInitialBoard } from './shared';
 import { Disc } from './Disc';
 import { usePeerConnection } from './usePeerConnection';
+import { ChatComponent } from './P2PChat';
 
 type Cell = Player;
 
@@ -365,7 +366,13 @@ export function OthelloPageP2P() {
           })
         )}
       </div>
-
+      <ChatComponent 
+        peerId={peerId}
+        connected={connected}
+        connRef={connRef}
+        peerRef={peerRef}
+        connectToPeer={connectToPeer}
+      />
       <button onClick={resetGame} style={{ marginTop: 20 }}>
         Reset Game
       </button>

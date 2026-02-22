@@ -7,7 +7,7 @@ import Link from "next/link";
 export const GlobalLayout: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(false);
+  const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
   const touchStartX = useRef<number | null>(null);
   const touchCurrentX = useRef<number>(0);
 
@@ -112,10 +112,6 @@ const ToggleButton = styled.button`
   font-size: 24px;
   margin-right: 20px;
   cursor: pointer;
-
-  @media (min-width: 769px) {
-    display: none;
-  }
 `;
 
 const Title = styled.h1`
@@ -127,7 +123,6 @@ const MainContent = styled.main`
   flex: 1;
   display: flex;
   min-height: 0;
-  overflow: auto;
   position: relative;
 `;
 
