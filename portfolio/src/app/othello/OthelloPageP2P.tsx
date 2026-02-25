@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Player, SIZE, directions, createInitialBoard } from './shared';
 import { Disc } from './Disc';
 import { usePeerConnection } from './usePeerConnection';
