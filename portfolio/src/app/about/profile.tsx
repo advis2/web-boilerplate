@@ -4,12 +4,6 @@ export const profile = {
   affiliation: "Imagoworks Inc.",
   email: "wadvisw@gmail.com",
   github: "https://github.com/advis2",
-  researchInterests: [
-    "Large Language Models",
-    "Representation Learning",
-    "Optimization",
-    "Robust Machine Learning"
-  ]
 } as const;
 
 export const techStack = {

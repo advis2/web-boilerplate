@@ -1,7 +1,6 @@
 "use client";
 
 import { profile, TechStack, techStack } from "./profile";
-import { PublicationCard, publications } from "./publications";
 import { ProjectCard, projects } from "./projects";
 import { ReactNode } from "react"
 
@@ -33,22 +32,6 @@ export default function AboutPage() {
           <a href={profile.github}> GitHub</a> | 
         </p>
       </header>
-
-      {/* Research Interests */}
-      <Section title="Research Interests">
-        <ul>
-          {profile.researchInterests.map((interest) => (
-            <li key={interest}>{interest}</li>
-          ))}
-        </ul>
-      </Section>
-
-      {/* Publications */}
-      <Section title="Selected Publications">
-        {publications.map((pub) => (
-          <PublicationCard key={pub.title} {...pub} />
-        ))}
-      </Section>
 
       {/* Projects */}
       <Section title="Projects">
