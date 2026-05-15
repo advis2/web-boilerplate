@@ -10,7 +10,7 @@ permissions:
   actions: read
   contents: write    # 배포 및 푸시 작업을 위한 쓰기 권한
   id-token: write    # GitHub Actions에서 JWT 토큰을 생성할 수 있는 권한 (선택 사항, 보안 관련)
-  
+
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -20,68 +20,43 @@ jobs:
           filter: tree:0
           fetch-depth: 0
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      # Connect your workspace by running "nx connect" and uncomment this line to enable task distribution
-      # - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
+      # Corepack 활성화 → pnpm 사용
+      - run: corepack enable
+      - run: corepack prepare pnpm@latest --activate
 
-      # Cache node_modules
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: 'pnpm'
+          cache: 'pnpm'
 
-      # Corepack 활성화
-      - run: corepack enable
-
-      # pnpm 활성화
-      - run: corepack prepare pnpm@latest --activate
-
-      # pnpm 설치 확인
       - run: pnpm --version
 
-      # pnpm cache 추가
-      - name: Cache pnpm store
-        uses: actions/cache@v3
-        with:
-          path: ~/.pnpm-store
-          key: pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-store-
-
       # pnpm 의존성 설치
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
 
-      # # Prepend any command with "nx record --" to record its logs to Nx Cloud
-      # - run: pnpm nx run-many -t lint test build typecheck
+      # 1. 정적 검증 (lint + typecheck) — PR 회귀 가드
+      - name: Lint
+        run: pnpm nx run-many -t lint --parallel=3
 
-      # 4. Build the Next.js site
-      # Next.js 앱 빌드
-      # 정적 사이트로 export
+      - name: Typecheck
+        run: pnpm nx run-many -t typecheck --parallel=3
+
+      # 2. Test (test 타겟이 있는 프로젝트만 자동 실행, 없으면 noop)
+      - name: Test
+        run: pnpm nx run-many -t test --parallel=3 --passWithNoTests
+
+      # 3. Build the Next.js site (정적 export)
       - name: Build Next.js site
-        run: |
-          pnpm nx build portfolio  
+        run: pnpm nx build portfolio
 
-      # 5. Deploy to GitHub Pages
+      # 4. Deploy to GitHub Pages (master push 시에만)
       - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist/apps/portfolio/out  # `out` 폴더에 정적 파일이 생성됨
+          publish_dir: ./dist/apps/portfolio/out
 
-      # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
+      # Nx Cloud self-healing (연결 안 했으면 noop)
       - run: npx nx fix-ci
         if: always()
-
-      # # 8️⃣ Vercel 배포 (master 브랜치)
-      # - name: Vercel Deploy
-      #   if: github.ref == 'refs/heads/master'
-      #   env:
-      #     VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      # # pnpm dlx vercel --prod --confirm --token $VERCEL_TOKEN --cwd dist/apps/portfolio --local-build
-      #   run: |
-      #     pnpm dlx vercel link --yes --token $VERCEL_TOKEN        
-      #     pnpm dlx vercel pull --yes --token $VERCEL_TOKEN
-      #     pnpm dlx vercel build --cwd portfolio --prod
-      #     pnpm dlx vercel deploy --prebuilt --cwd portfolio --prod --token $VERCEL_TOKEN

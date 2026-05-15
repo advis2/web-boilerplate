@@ -16,6 +16,13 @@
       "options": {
         "buildTarget": "portfolio:build"
       }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "portfolio",
+        "command": "tsc -p tsconfig.json --noEmit"
+      }
     }
   }
 }
