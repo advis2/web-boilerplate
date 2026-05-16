@@ -5,6 +5,86 @@ import type { CameraInit } from "./presets";
 
 const PARTICLE_COUNT = 16384;
 const WORKGROUP_SIZE = 64;
+const SCENE_HALF = 3; // wireframe cube / ground grid 반경
+
+const LINE_WGSL = `
+struct Camera {
+  viewProj  : mat4x4<f32>,
+  pointSize : f32,
+  _pad0     : f32,
+  _pad1     : f32,
+  _pad2     : f32,
+};
+
+@group(0) @binding(0) var<uniform> cam : Camera;
+
+struct VOut {
+  @builtin(position) pos   : vec4<f32>,
+  @location(0)       color : vec3<f32>,
+};
+
+@vertex
+fn vs(@location(0) pos : vec3<f32>, @location(1) col : vec3<f32>) -> VOut {
+  var out : VOut;
+  out.pos   = cam.viewProj * vec4<f32>(pos, 1.0);
+  out.color = col;
+  return out;
+}
+
+@fragment
+fn fs(in : VOut) -> @location(0) vec4<f32> {
+  return vec4<f32>(in.color, 1.0);
+}
+`;
+
+// 큐브 12 edges (24 vertices) + ground grid (XZ at y=-SCENE_HALF)
+function buildSceneLines(half: number): Float32Array {
+  const vs: number[] = [];
+  const pushLine = (
+    ax: number, ay: number, az: number,
+    bx: number, by: number, bz: number,
+    cr: number, cg: number, cb: number,
+  ) => {
+    vs.push(ax, ay, az, cr, cg, cb);
+    vs.push(bx, by, bz, cr, cg, cb);
+  };
+
+  // X axis red, Y axis green, Z axis blue (원점에서 짧게)
+  pushLine(0, 0, 0, half * 0.4, 0, 0, 0.9, 0.25, 0.25);
+  pushLine(0, 0, 0, 0, half * 0.4, 0, 0.25, 0.9, 0.25);
+  pushLine(0, 0, 0, 0, 0, half * 0.4, 0.25, 0.4, 1.0);
+
+  // Wireframe cube [-half, half]^3 (회색)
+  const c = 0.32;
+  // bottom 4
+  pushLine(-half, -half, -half,  half, -half, -half, c, c, c);
+  pushLine( half, -half, -half,  half, -half,  half, c, c, c);
+  pushLine( half, -half,  half, -half, -half,  half, c, c, c);
+  pushLine(-half, -half,  half, -half, -half, -half, c, c, c);
+  // top 4
+  pushLine(-half,  half, -half,  half,  half, -half, c, c, c);
+  pushLine( half,  half, -half,  half,  half,  half, c, c, c);
+  pushLine( half,  half,  half, -half,  half,  half, c, c, c);
+  pushLine(-half,  half,  half, -half,  half, -half, c, c, c);
+  // verticals 4
+  pushLine(-half, -half, -half, -half,  half, -half, c, c, c);
+  pushLine( half, -half, -half,  half,  half, -half, c, c, c);
+  pushLine( half, -half,  half,  half,  half,  half, c, c, c);
+  pushLine(-half, -half,  half, -half,  half,  half, c, c, c);
+
+  // Ground grid at y = -half (어두운 회색)
+  const g = 0.18;
+  const steps = 6;
+  for (let i = 0; i <= steps; i++) {
+    const t = -half + (2 * half * i) / steps;
+    pushLine(-half, -half, t,  half, -half, t,  g, g, g);
+    pushLine(t, -half, -half,  t, -half,  half,  g, g, g);
+  }
+
+  const arr = new Float32Array(vs.length);
+  arr.set(vs);
+  return arr;
+}
 
 const RENDER_WGSL = `
 struct Particle {
@@ -151,6 +231,10 @@ export default function WebGPUCanvas({
     computeBindGroup?: GPUBindGroup;
     renderPipeline?: GPURenderPipeline;
     renderBindGroup?: GPUBindGroup;
+    linePipeline?: GPURenderPipeline;
+    lineBindGroup?: GPUBindGroup;
+    lineVertexBuf?: GPUBuffer;
+    lineVertexCount?: number;
     depthTex?: GPUTexture;
     rafId?: number;
     startTime: number;
@@ -305,6 +389,49 @@ export default function WebGPUCanvas({
         depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
       });
 
+      // Line (wireframe cube + ground grid + axis) pipeline
+      const lineData = buildSceneLines(SCENE_HALF);
+      const lineVertexBuf = device.createBuffer({
+        size: lineData.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      device.queue.writeBuffer(
+        lineVertexBuf,
+        0,
+        lineData.buffer as ArrayBuffer,
+        lineData.byteOffset,
+        lineData.byteLength,
+      );
+
+      const lineBGL = device.createBindGroupLayout({
+        entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } }],
+      });
+      const lineBindGroup = device.createBindGroup({
+        layout: lineBGL,
+        entries: [{ binding: 0, resource: { buffer: cameraBuf } }],
+      });
+      const lineModule = device.createShaderModule({ code: LINE_WGSL });
+      const lineLayout = device.createPipelineLayout({ bindGroupLayouts: [lineBGL] });
+      const linePipeline = device.createRenderPipeline({
+        layout: lineLayout,
+        vertex: {
+          module: lineModule,
+          entryPoint: "vs",
+          buffers: [
+            {
+              arrayStride: 24, // vec3 pos + vec3 color
+              attributes: [
+                { shaderLocation: 0, offset: 0, format: "float32x3" },
+                { shaderLocation: 1, offset: 12, format: "float32x3" },
+              ],
+            },
+          ],
+        },
+        fragment: { module: lineModule, entryPoint: "fs", targets: [{ format }] },
+        primitive: { topology: "line-list" },
+        depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
+      });
+
       const s = stateRef.current;
       s.device = device;
       s.context = context;
@@ -317,6 +444,10 @@ export default function WebGPUCanvas({
       s.computeBindGroup = computeBindGroup;
       s.renderPipeline = renderPipeline;
       s.renderBindGroup = renderBindGroup;
+      s.linePipeline = linePipeline;
+      s.lineBindGroup = lineBindGroup;
+      s.lineVertexBuf = lineVertexBuf;
+      s.lineVertexCount = lineData.length / 6;
       s.startTime = performance.now();
       s.lastTime = s.startTime;
 
@@ -531,6 +662,10 @@ function renderFrame(
     computeBindGroup?: GPUBindGroup;
     renderPipeline?: GPURenderPipeline;
     renderBindGroup?: GPUBindGroup;
+    linePipeline?: GPURenderPipeline;
+    lineBindGroup?: GPUBindGroup;
+    lineVertexBuf?: GPUBuffer;
+    lineVertexCount?: number;
     depthTex?: GPUTexture;
     startTime: number;
     lastTime: number;
@@ -607,6 +742,13 @@ function renderFrame(
       depthStoreOp: "store",
     },
   });
+  // Lines (wireframe cube + ground grid + axis) — particle 전에 그려서 가려질 수도 있게
+  if (s.linePipeline && s.lineBindGroup && s.lineVertexBuf && s.lineVertexCount) {
+    pass.setPipeline(s.linePipeline);
+    pass.setBindGroup(0, s.lineBindGroup);
+    pass.setVertexBuffer(0, s.lineVertexBuf);
+    pass.draw(s.lineVertexCount);
+  }
   if (s.renderPipeline && s.renderBindGroup) {
     pass.setPipeline(s.renderPipeline);
     pass.setBindGroup(0, s.renderBindGroup);
