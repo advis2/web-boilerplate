@@ -11,6 +11,7 @@ export default [
       '.next/**/*',
       'out/**/*',
       'dist/**/*',
+      'public/wasm/**/*',
       'next-env.d.ts',
       '**/*.tsbuildinfo',
     ],
