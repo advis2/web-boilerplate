@@ -269,7 +269,7 @@ export default function WebGPUCanvas({
     s.yaw = cameraInit.yaw;
     s.pitch = cameraInit.pitch;
     s.distance = cameraInit.distance;
-  }, [resetSerial, cameraInit.yaw, cameraInit.pitch, cameraInit.distance]);
+  }, [resetSerial, cameraInit]);
 
   useEffect(() => {
     let disposed = false;
@@ -466,6 +466,11 @@ export default function WebGPUCanvas({
           const fps = Math.round((frameCount * 1000) / (now - fpsTimer));
           updateStatus(statusRef.current, "fps", String(fps));
           updateStatus(statusRef.current, "size", `${canvas.width}×${canvas.height}`);
+          updateStatus(
+            statusRef.current,
+            "cam",
+            `d=${s.distance.toFixed(1)} y=${((s.yaw * 180) / Math.PI).toFixed(0)}° p=${((s.pitch * 180) / Math.PI).toFixed(0)}°`,
+          );
           frameCount = 0;
           fpsTimer = now;
         }
@@ -513,7 +518,10 @@ export default function WebGPUCanvas({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const s = stateRef.current;
-      s.distance = Math.max(2, Math.min(30, s.distance * (1 + e.deltaY * 0.001)));
+      // cube 외접 구 반경(SCENE_HALF * √3 ≈ 5.2)보다 가까이는 못 가게 —
+      // 카메라가 cube 모서리 안쪽으로 들어가는 것 방지
+      const minDist = SCENE_HALF * Math.sqrt(3) + 0.5;
+      s.distance = Math.max(minDist, Math.min(50, s.distance * (1 + e.deltaY * 0.001)));
     };
     canvas?.addEventListener("pointerdown", onDown);
     canvas?.addEventListener("pointermove", onMove);
@@ -699,9 +707,12 @@ function renderFrame(
   new Uint32Array(u, 8, 1)[0] = PARTICLE_COUNT;
   device.queue.writeBuffer(uniformBuf, 0, u);
 
-  // Camera
+  // Camera — near/far를 distance + scene 크기에 맞춰 동적 조정
   const aspect = canvas.width / canvas.height;
-  const proj = mat4Perspective(Math.PI / 3, aspect, 0.1, 100);
+  const sceneRadius = SCENE_HALF * Math.SQRT2 * 1.3; // cube 외접 + 여유
+  const near = Math.max(0.1, s.distance - sceneRadius);
+  const far = s.distance + sceneRadius * 3;
+  const proj = mat4Perspective(Math.PI / 3, aspect, near, far);
   const ex = Math.cos(s.pitch) * Math.sin(s.yaw) * s.distance;
   const ey = Math.sin(s.pitch) * s.distance;
   const ez = Math.cos(s.pitch) * Math.cos(s.yaw) * s.distance;
