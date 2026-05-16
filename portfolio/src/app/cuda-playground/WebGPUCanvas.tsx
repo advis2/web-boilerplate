@@ -147,16 +147,19 @@ fn fs(in : VOut) -> @location(0) vec4<f32> {
 }
 `;
 
-// gl-matrix 없이 인라인 mat4 helper
+// gl-matrix 없이 인라인 mat4 helper.
+// WGSL의 mat4x4<f32>는 column-major storage이므로 곱셈도 column-major:
+// result[col c][row r] = sum_k a[col k][row r] * b[col c][row k]
+//                      = sum_k a[k*4 + r]     * b[c*4 + k]
 function mat4Mul(a: Float32Array, b: Float32Array): Float32Array {
   const r = new Float32Array(16);
-  for (let i = 0; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      r[i * 4 + j] =
-        a[i * 4 + 0] * b[0 * 4 + j] +
-        a[i * 4 + 1] * b[1 * 4 + j] +
-        a[i * 4 + 2] * b[2 * 4 + j] +
-        a[i * 4 + 3] * b[3 * 4 + j];
+  for (let c = 0; c < 4; c++) {
+    for (let row = 0; row < 4; row++) {
+      r[c * 4 + row] =
+        a[0 * 4 + row] * b[c * 4 + 0] +
+        a[1 * 4 + row] * b[c * 4 + 1] +
+        a[2 * 4 + row] * b[c * 4 + 2] +
+        a[3 * 4 + row] * b[c * 4 + 3];
     }
   }
   return r;
