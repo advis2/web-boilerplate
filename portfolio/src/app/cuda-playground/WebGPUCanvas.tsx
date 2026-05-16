@@ -125,6 +125,7 @@ interface Props {
 
 export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
   const shaderCodeRef = useRef(shaderCode);
   const stateRef = useRef<{
     device?: GPUDevice;
@@ -172,6 +173,7 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
       const canvas = canvasRef.current;
       if (!canvas) return;
 
+      updateStatus(statusRef.current, "init", "requesting adapter…");
       if (!navigator.gpu) {
         onUnsupported();
         return;
@@ -182,12 +184,26 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
         onUnsupported();
         return;
       }
+      updateStatus(statusRef.current, "init", "requesting device…");
       const device = await adapter.requestDevice();
       if (disposed) return;
 
+      device.lost.then((info) => {
+        if (!disposed) onError(`GPU device lost: ${info.message}`);
+      });
+      device.addEventListener("uncapturederror", (ev) => {
+        const e = ev as GPUUncapturedErrorEvent;
+        onError(`uncaptured: ${e.error.message}`);
+      });
+
       const context = canvas.getContext("webgpu") as GPUCanvasContext;
+      if (!context) {
+        onError("canvas.getContext('webgpu') returned null");
+        return;
+      }
       const format = navigator.gpu.getPreferredCanvasFormat();
-      context.configure({ device, format, alphaMode: "premultiplied" });
+      context.configure({ device, format, alphaMode: "opaque" });
+      updateStatus(statusRef.current, "init", "device ok");
 
       // Buffers
       const particleData = new Float32Array(PARTICLE_COUNT * 8);
@@ -286,9 +302,20 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
       resizeIfNeeded(s, canvas);
       recompileCompute(s, shaderCodeRef.current, onError);
 
+      let frameCount = 0;
+      let fpsTimer = performance.now();
       const frame = () => {
         if (disposed) return;
         renderFrame(s, canvas);
+        frameCount++;
+        const now = performance.now();
+        if (now - fpsTimer >= 500) {
+          const fps = Math.round((frameCount * 1000) / (now - fpsTimer));
+          updateStatus(statusRef.current, "fps", String(fps));
+          updateStatus(statusRef.current, "size", `${canvas.width}×${canvas.height}`);
+          frameCount = 0;
+          fpsTimer = now;
+        }
         s.rafId = requestAnimationFrame(frame);
       };
       s.rafId = requestAnimationFrame(frame);
@@ -296,6 +323,14 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
       console.error(err);
       onError(String(err?.message ?? err));
     });
+
+    // ResizeObserver로 layout 변경 즉시 대응 (Monaco lazy load 등 layout shift 케이스)
+    const canvasEl = canvasRef.current;
+    let ro: ResizeObserver | null = null;
+    if (canvasEl && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => resizeIfNeeded(stateRef.current, canvasEl));
+      ro.observe(canvasEl);
+    }
 
     // 마우스 인터랙션
     const canvas = canvasRef.current;
@@ -336,6 +371,7 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
       disposed = true;
       const s = stateRef.current;
       if (s.rafId) cancelAnimationFrame(s.rafId);
+      ro?.disconnect();
       canvas?.removeEventListener("pointerdown", onDown);
       canvas?.removeEventListener("pointermove", onMove);
       canvas?.removeEventListener("pointerup", onUp);
@@ -344,16 +380,36 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
   }, [onError, onUnsupported]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "block",
-        background: "#0f172a",
-        cursor: "grab",
-      }}
-    />
+    <div style={{ position: "absolute", inset: 0 }}>
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "block",
+          background: "#000",
+          cursor: "grab",
+        }}
+      />
+      <div
+        ref={statusRef}
+        style={{
+          position: "absolute",
+          top: "0.5rem",
+          left: "0.5rem",
+          padding: "0.3rem 0.55rem",
+          background: "rgba(15, 23, 42, 0.85)",
+          border: "1px solid #1e293b",
+          borderRadius: "6px",
+          color: "#94a3b8",
+          fontSize: "0.7rem",
+          fontFamily: "ui-monospace, monospace",
+          pointerEvents: "none",
+        }}
+      >
+        init: waiting…
+      </div>
+    </div>
   );
 }
 
@@ -415,8 +471,11 @@ function resizeIfNeeded(
   canvas: HTMLCanvasElement,
 ) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
-  const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+  // clientWidth가 0인 경우 getBoundingClientRect로 한 번 더 확인
+  const cssW = canvas.clientWidth || canvas.getBoundingClientRect().width || 800;
+  const cssH = canvas.clientHeight || canvas.getBoundingClientRect().height || 600;
+  const w = Math.max(1, Math.floor(cssW * dpr));
+  const h = Math.max(1, Math.floor(cssH * dpr));
   if (canvas.width === w && canvas.height === h && s.depthTex) return;
   canvas.width = w;
   canvas.height = h;
@@ -427,6 +486,16 @@ function resizeIfNeeded(
     format: "depth24plus",
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
+}
+
+function updateStatus(el: HTMLDivElement | null, key: string, value: string) {
+  if (!el) return;
+  const map = (el.dataset.status ? JSON.parse(el.dataset.status) : {}) as Record<string, string>;
+  map[key] = value;
+  el.dataset.status = JSON.stringify(map);
+  el.textContent = Object.entries(map)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("  ·  ");
 }
 
 function renderFrame(
@@ -503,7 +572,7 @@ function renderFrame(
     colorAttachments: [
       {
         view: colorView,
-        clearValue: { r: 0.06, g: 0.09, b: 0.16, a: 1 },
+        clearValue: { r: 0.03, g: 0.05, b: 0.12, a: 1 },
         loadOp: "clear",
         storeOp: "store",
       },
