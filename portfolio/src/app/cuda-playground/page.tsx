@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { presets } from "./presets";
+import { presets, type CameraInit } from "./presets";
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 const WebGPUCanvas = dynamic(() => import("./WebGPUCanvas"), { ssr: false });
@@ -13,6 +13,7 @@ export default function CudaPlaygroundPage() {
   const [debouncedCode, setDebouncedCode] = useState(presets[0].code);
   const [error, setError] = useState<string | null>(null);
   const [unsupported, setUnsupported] = useState(false);
+  const [resetSerial, setResetSerial] = useState(0);
 
   // 300ms debounce — 타이핑 중에 매번 재컴파일 안 함
   useEffect(() => {
@@ -23,6 +24,11 @@ export default function CudaPlaygroundPage() {
   const handlePreset = useCallback((idx: number) => {
     setPresetIdx(idx);
     setCode(presets[idx].code);
+    setResetSerial((s) => s + 1);
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    setResetSerial((s) => s + 1);
   }, []);
 
   const onError = useCallback((msg: string | null) => setError(msg), []);
@@ -42,12 +48,15 @@ export default function CudaPlaygroundPage() {
       <Header
         presetIdx={presetIdx}
         onPreset={handlePreset}
+        onResetView={handleResetView}
       />
 
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <EditorPane code={code} onChange={setCode} error={error} />
         <CanvasPane
           shaderCode={debouncedCode}
+          cameraInit={presets[presetIdx].camera}
+          resetSerial={resetSerial}
           onError={onError}
           onUnsupported={onUnsupported}
           unsupported={unsupported}
@@ -60,9 +69,11 @@ export default function CudaPlaygroundPage() {
 function Header({
   presetIdx,
   onPreset,
+  onResetView,
 }: {
   presetIdx: number;
   onPreset: (idx: number) => void;
+  onResetView: () => void;
 }) {
   return (
     <header
@@ -125,6 +136,23 @@ function Header({
             {p.name}
           </button>
         ))}
+
+        <button
+          onClick={onResetView}
+          style={{
+            marginLeft: "0.4rem",
+            padding: "0.4rem 0.85rem",
+            background: "transparent",
+            color: "#94a3b8",
+            border: "1px solid #334155",
+            borderRadius: "6px",
+            fontSize: "0.82rem",
+            cursor: "pointer",
+          }}
+          title="현재 preset의 기본 카메라 위치로 복원"
+        >
+          ↺ Reset View
+        </button>
       </div>
     </header>
   );
@@ -211,11 +239,15 @@ function ErrorBar({ error }: { error: string | null }) {
 
 function CanvasPane({
   shaderCode,
+  cameraInit,
+  resetSerial,
   onError,
   onUnsupported,
   unsupported,
 }: {
   shaderCode: string;
+  cameraInit: CameraInit;
+  resetSerial: number;
   onError: (msg: string | null) => void;
   onUnsupported: () => void;
   unsupported: boolean;
@@ -234,6 +266,8 @@ function CanvasPane({
       ) : (
         <WebGPUCanvas
           shaderCode={shaderCode}
+          cameraInit={cameraInit}
+          resetSerial={resetSerial}
           onError={onError}
           onUnsupported={onUnsupported}
         />

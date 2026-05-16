@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import type { CameraInit } from "./presets";
 
 const PARTICLE_COUNT = 16384;
 const WORKGROUP_SIZE = 64;
@@ -119,14 +120,24 @@ function mat4LookAt(eye: [number, number, number], center: [number, number, numb
 
 interface Props {
   shaderCode: string;
+  cameraInit: CameraInit;
+  resetSerial: number;
   onError: (msg: string | null) => void;
   onUnsupported: () => void;
 }
 
-export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Props) {
+export default function WebGPUCanvas({
+  shaderCode,
+  cameraInit,
+  resetSerial,
+  onError,
+  onUnsupported,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const shaderCodeRef = useRef(shaderCode);
+  const cameraInitRef = useRef(cameraInit);
+  cameraInitRef.current = cameraInit;
   const stateRef = useRef<{
     device?: GPUDevice;
     context?: GPUCanvasContext;
@@ -147,13 +158,15 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
     yaw: number;
     pitch: number;
     distance: number;
+    pointSize: number;
     resetTime: boolean;
   }>({
     startTime: 0,
     lastTime: 0,
-    yaw: 0.4,
-    pitch: 0.35,
-    distance: 6,
+    yaw: cameraInit.yaw,
+    pitch: cameraInit.pitch,
+    distance: cameraInit.distance,
+    pointSize: cameraInit.pointSize,
     resetTime: false,
   });
 
@@ -165,6 +178,14 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
       recompileCompute(s, shaderCode, onError);
     }
   }, [shaderCode, onError]);
+
+  // preset 변경 또는 Reset View → 카메라 init 값으로 복원
+  useEffect(() => {
+    const s = stateRef.current;
+    s.yaw = cameraInit.yaw;
+    s.pitch = cameraInit.pitch;
+    s.distance = cameraInit.distance;
+  }, [resetSerial, cameraInit.yaw, cameraInit.pitch, cameraInit.distance]);
 
   useEffect(() => {
     let disposed = false;
@@ -306,6 +327,7 @@ export default function WebGPUCanvas({ shaderCode, onError, onUnsupported }: Pro
       let fpsTimer = performance.now();
       const frame = () => {
         if (disposed) return;
+        s.pointSize = cameraInitRef.current.pointSize;
         renderFrame(s, canvas);
         frameCount++;
         const now = performance.now();
@@ -515,6 +537,7 @@ function renderFrame(
     yaw: number;
     pitch: number;
     distance: number;
+    pointSize: number;
     resetTime: boolean;
   },
   canvas: HTMLCanvasElement,
@@ -552,7 +575,7 @@ function renderFrame(
 
   const camData = new Float32Array(20);
   camData.set(viewProj, 0);
-  camData[16] = 0.012; // pointSize
+  camData[16] = s.pointSize;
   device.queue.writeBuffer(cameraBuf, 0, camData);
 
   const encoder = device.createCommandEncoder();

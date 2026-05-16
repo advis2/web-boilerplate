@@ -1,8 +1,23 @@
+export interface CameraInit {
+  distance: number;
+  yaw: number;
+  pitch: number;
+  pointSize: number;
+}
+
 export interface Preset {
   name: string;
   description: string;
   code: string;
+  camera: CameraInit;
 }
+
+export const DEFAULT_CAMERA: CameraInit = {
+  distance: 5,
+  yaw: 0.4,
+  pitch: 0.35,
+  pointSize: 0.018,
+};
 
 export const PRESET_HEADER = `// 고정 영역 (편집 금지)
 struct Particle {
@@ -27,6 +42,7 @@ export const presets: Preset[] = [
   {
     name: "Wave",
     description: "사인파 격자 — y 좌표가 (x, z, t)의 함수",
+    camera: { distance: 8.5, yaw: 0.6, pitch: 0.55, pointSize: 0.012 },
     code: `${PRESET_HEADER}
 // === USER KERNEL ===
 @compute @workgroup_size(64)
@@ -53,6 +69,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   {
     name: "Spiral Galaxy",
     description: "회전하는 나선 은하 — 각 입자의 각속도가 반지름에 따라 변함",
+    camera: { distance: 7, yaw: 0.4, pitch: 0.9, pointSize: 0.01 },
     code: `${PRESET_HEADER}
 // === USER KERNEL ===
 fn hash(n : u32) -> f32 {
@@ -87,6 +104,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   {
     name: "Lorenz Attractor",
     description: "카오스 시스템 — dx/dt, dy/dt, dz/dt 미분방정식 적분",
+    camera: { distance: 5, yaw: 0.3, pitch: 0.2, pointSize: 0.014 },
     code: `${PRESET_HEADER}
 // === USER KERNEL ===
 @compute @workgroup_size(64)
@@ -128,6 +146,7 @@ fn main(@builtin(global_invocation_id) gid : vec3<u32>) {
   {
     name: "Gravity Well",
     description: "중력 우물 — velocity를 적분하며 중심으로 끌림",
+    camera: { distance: 6, yaw: 0.4, pitch: 0.3, pointSize: 0.013 },
     code: `${PRESET_HEADER}
 // === USER KERNEL ===
 fn hash(n : u32) -> f32 {
