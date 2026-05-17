@@ -83,6 +83,30 @@ export const projects: readonly CaseStudy[] = [
       "feature 단위 incremental build 정상화.",
     tags: ["Nx", "rspack", "CI/CD", "DevX"],
   },
+  {
+    name: "Browser-side C++/WASM + WebGPU 3D Pipeline (Live Demos)",
+    context: "본인 portfolio 사이트의 도메인 실증 데모 3종",
+    problem:
+      "C++/WASM 엔진 + GPU 컴퓨팅 + 3D 시각화의 수직 통합 경험은 " +
+      "이력서 텍스트로는 전달이 약함. 채용/협업 시 \"이런 아키텍처를 " +
+      "다룬다\"는 사실을 직접 만져볼 수 있는 형태로 보여줄 필요.",
+    approach:
+      "Emscripten + webgpu.h 로 C++가 GPU compute pipeline / buffer / " +
+      "dispatch를 직접 발행하고, JS render pipeline이 같은 GPU buffer를 " +
+      "zero-copy로 시각화하는 패턴을 portfolio에 인터랙티브 데모 3종으로 " +
+      "구현:\n" +
+      "  · /cuda-playground — WGSL compute shader 라이브 에디터 " +
+      "(Monaco + 300ms 재컴파일, 16K particles)\n" +
+      "  · /nbody — C++/WASM이 webgpu.h로 N-body O(N²) gravity kernel을 " +
+      "오케스트레이션 (512~8K particles, ~0.7ms/step)\n" +
+      "  · /mesh — C++ 절차적 mesh (sphere/torus) + GPU vertex deformation " +
+      "(최대 ~33K vertex, 같은 buffer를 vertex attribute로 직접 render)",
+    outcome:
+      "사이트 방문자가 직접 코드 수정 / 파라미터 조정 / 마우스 조작으로 " +
+      "동작을 확인. iwtk 도메인 아키텍처의 단순화된 시연으로, 단순한 " +
+      "코드 샘플이 아니라 \"수직 통합\"을 실제로 동작시키는 형태.",
+    tags: ["C++", "WebAssembly", "WebGPU", "3D", "Live Demo"],
+  },
 ] as const;
 
 export function ProjectCard(p: CaseStudy) {
@@ -166,7 +190,7 @@ function CaseRow({ label, body }: { label: string; body: string }) {
       >
         {label}
       </div>
-      <div style={{ color: "#475569" }}>{body}</div>
+      <div style={{ color: "#475569", whiteSpace: "pre-wrap" }}>{body}</div>
     </div>
   );
 }
