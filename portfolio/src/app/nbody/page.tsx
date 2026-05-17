@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { patterns, PARTICLE_COUNTS } from "./patterns";
 
 const NBodyRenderCanvas = dynamic(() => import("./NBodyRenderCanvas"), { ssr: false });
 
 interface NBodyModule {
-  _nbody_hello: () => number;
   _nbody_init_webgpu: () => number;
   _nbody_setup: (count: number, initialPtr: number) => number;
   _nbody_step: (dt: number, G: number, softening: number) => void;
@@ -36,36 +36,7 @@ async function loadWasmFactory(jsSrc: string): Promise<NBodyFactory> {
   return factory as NBodyFactory;
 }
 
-const STRIDE_FLOATS = 8;
-
-function generateInitialParticles(n: number): Float32Array {
-  const data = new Float32Array(n * STRIDE_FLOATS);
-  for (let i = 0; i < n; i++) {
-    const u = Math.random();
-    const v = Math.random();
-    const theta = 2 * Math.PI * u;
-    const phi = Math.acos(2 * v - 1);
-    const r = 0.8 + Math.random() * 0.5;
-    const x = r * Math.sin(phi) * Math.cos(theta);
-    const y = r * Math.sin(phi) * Math.sin(theta);
-    const z = r * Math.cos(phi);
-    const vx = -y * 0.5;
-    const vy = x * 0.5;
-    const off = i * STRIDE_FLOATS;
-    data[off + 0] = x;
-    data[off + 1] = y;
-    data[off + 2] = z;
-    data[off + 4] = vx;
-    data[off + 5] = vy;
-    data[off + 6] = 0;
-  }
-  return data;
-}
-
-const N = 2048;
-const DT = 1 / 240; // 안정성 위해 더 작게
-const G_DEFAULT = 0.05;
-const SOFTENING_DEFAULT = 0.25;
+const DT = 1 / 240;
 
 interface Ready {
   module: NBodyModule;
@@ -77,25 +48,57 @@ export default function NBodyPage() {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState<Ready | null>(null);
   const [stats, setStats] = useState({ fps: 0, stepMs: 0 });
-  const [G, setG] = useState(G_DEFAULT);
-  const [softening, setSoftening] = useState(SOFTENING_DEFAULT);
+
+  const [patternIdx, setPatternIdx] = useState(0);
+  const [count, setCount] = useState<number>(2048);
+  const [G, setG] = useState(patterns[0].defaultG);
+  const [softening, setSoftening] = useState(patterns[0].defaultSoftening);
   const [running, setRunning] = useState(true);
   const [resetSerial, setResetSerial] = useState(0);
 
-  const reuploadParticles = (mod: NBodyModule) => {
-    const initial = generateInitialParticles(N);
-    const ptr = mod._nbody_malloc(initial.byteLength);
-    if (!ptr) throw new Error("malloc failed");
-    mod.HEAPF32.set(initial, ptr / 4);
-    const rc = mod._nbody_setup(N, ptr);
-    mod._nbody_free(ptr);
-    if (rc !== 0) throw new Error(`nbody_setup rc=${rc}`);
+  const reuploadParticles = useCallback(
+    (mod: NBodyModule, patternIndex: number, n: number) => {
+      const initial = patterns[patternIndex].generate(n);
+      const ptr = mod._nbody_malloc(initial.byteLength);
+      if (!ptr) throw new Error("malloc failed");
+      mod.HEAPF32.set(initial, ptr / 4);
+      const rc = mod._nbody_setup(n, ptr);
+      mod._nbody_free(ptr);
+      if (rc !== 0) throw new Error(`nbody_setup rc=${rc}`);
+    },
+    [],
+  );
+
+  const handlePatternChange = (idx: number) => {
+    setPatternIdx(idx);
+    setG(patterns[idx].defaultG);
+    setSoftening(patterns[idx].defaultSoftening);
+    if (ready) {
+      try {
+        reuploadParticles(ready.module, idx, count);
+        setResetSerial((s) => s + 1);
+      } catch (e) {
+        setError(String((e as Error)?.message ?? e));
+      }
+    }
+  };
+
+  const handleCountChange = (n: number) => {
+    setCount(n);
+    if (ready) {
+      try {
+        reuploadParticles(ready.module, patternIdx, n);
+        setResetSerial((s) => s + 1);
+      } catch (e) {
+        setError(String((e as Error)?.message ?? e));
+      }
+    }
   };
 
   const handleReset = () => {
     if (!ready) return;
     try {
-      reuploadParticles(ready.module);
+      reuploadParticles(ready.module, patternIdx, count);
       setResetSerial((s) => s + 1);
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
@@ -125,8 +128,8 @@ export default function NBodyPage() {
           throw new Error("Module.WebGPU.mgrBuffer not available — post.js build issue");
         }
 
-        setStatus(`generating ${N} particles…`);
-        reuploadParticles(Module);
+        setStatus(`generating ${count} particles…`);
+        reuploadParticles(Module, patternIdx, count);
         if (cancelled) return;
 
         setReady({ module: Module, device });
@@ -139,6 +142,7 @@ export default function NBodyPage() {
     return () => {
       cancelled = true;
     };
+    // 첫 마운트에만 — 이후 변경은 handler들이 처리
   }, []);
 
   return (
@@ -155,6 +159,10 @@ export default function NBodyPage() {
       <Header
         status={status}
         stats={stats}
+        patternIdx={patternIdx}
+        onPatternChange={handlePatternChange}
+        count={count}
+        onCountChange={handleCountChange}
         G={G}
         setG={setG}
         softening={softening}
@@ -171,7 +179,7 @@ export default function NBodyPage() {
             key={resetSerial}
             module={ready.module}
             device={ready.device}
-            particleCount={N}
+            particleCount={count}
             dt={DT}
             G={G}
             softening={softening}
@@ -215,20 +223,13 @@ export default function NBodyPage() {
   );
 }
 
-function Header({
-  status,
-  stats,
-  G,
-  setG,
-  softening,
-  setSoftening,
-  running,
-  setRunning,
-  onReset,
-  resetEnabled,
-}: {
+function Header(props: {
   status: string;
   stats: { fps: number; stepMs: number };
+  patternIdx: number;
+  onPatternChange: (idx: number) => void;
+  count: number;
+  onCountChange: (n: number) => void;
   G: number;
   setG: (v: number) => void;
   softening: number;
@@ -238,6 +239,7 @@ function Header({
   onReset: () => void;
   resetEnabled: boolean;
 }) {
+  const p = patterns[props.patternIdx];
   return (
     <header
       style={{
@@ -246,52 +248,73 @@ function Header({
         background: "#0f172a",
         display: "flex",
         alignItems: "center",
-        gap: "1.5rem",
+        gap: "1rem",
         flexWrap: "wrap",
       }}
     >
       <div>
         <h1 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 600, color: "#f1f5f9" }}>
-          N-Body (C++/WASM compute + WebGPU render)
+          N-Body · C++/WASM compute orchestration + WebGPU
         </h1>
         <p style={{ margin: "0.15rem 0 0", fontSize: "0.75rem", color: "#94a3b8" }}>
-          {N.toLocaleString()} particles · all-pairs O(N²) gravity in C++ via webgpu.h
+          {p.description} · O(N²) gravity, kernel dispatched from C++ via webgpu.h
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-        <Slider label="G" value={G} min={0} max={1} step={0.01} onChange={setG} />
-        <Slider label="softening" value={softening} min={0.05} max={0.5} step={0.01} onChange={setSoftening} />
+      <div
+        style={{
+          display: "flex",
+          gap: "0.75rem",
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <label style={selectLabelStyle}>
+          <span style={{ color: "#cbd5e1" }}>Pattern:</span>
+          <select
+            value={props.patternIdx}
+            onChange={(e) => props.onPatternChange(parseInt(e.target.value, 10))}
+            style={selectStyle}
+          >
+            {patterns.map((p, i) => (
+              <option key={p.name} value={i}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label style={selectLabelStyle}>
+          <span style={{ color: "#cbd5e1" }}>N:</span>
+          <select
+            value={props.count}
+            onChange={(e) => props.onCountChange(parseInt(e.target.value, 10))}
+            style={selectStyle}
+          >
+            {PARTICLE_COUNTS.map((n) => (
+              <option key={n} value={n}>
+                {n.toLocaleString()}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <Slider label="G" value={props.G} min={0} max={0.3} step={0.005} onChange={props.setG} />
+        <Slider label="soft" value={props.softening} min={0.05} max={0.5} step={0.01} onChange={props.setSoftening} />
 
         <button
-          onClick={() => setRunning(!running)}
-          style={{
-            padding: "0.4rem 0.85rem",
-            background: running ? "#7f1d1d" : "#0f766e",
-            color: "#fff",
-            border: "1px solid #334155",
-            borderRadius: "6px",
-            fontSize: "0.82rem",
-            cursor: "pointer",
-          }}
+          onClick={() => props.setRunning(!props.running)}
+          style={btnStyle(props.running ? "#7f1d1d" : "#0f766e", "#fff")}
         >
-          {running ? "⏸ Pause" : "▶ Run"}
+          {props.running ? "⏸" : "▶"}
         </button>
 
         <button
-          onClick={onReset}
-          disabled={!resetEnabled}
-          style={{
-            padding: "0.4rem 0.85rem",
-            background: "transparent",
-            color: resetEnabled ? "#94a3b8" : "#475569",
-            border: "1px solid #334155",
-            borderRadius: "6px",
-            fontSize: "0.82rem",
-            cursor: resetEnabled ? "pointer" : "not-allowed",
-          }}
+          onClick={props.onReset}
+          disabled={!props.resetEnabled}
+          style={btnStyle("transparent", props.resetEnabled ? "#94a3b8" : "#475569")}
         >
-          ↺ Reset
+          ↺
         </button>
       </div>
 
@@ -299,15 +322,48 @@ function Header({
         style={{
           marginLeft: "auto",
           fontFamily: "ui-monospace, monospace",
-          fontSize: "0.78rem",
+          fontSize: "0.75rem",
           color: "#94a3b8",
+          textAlign: "right",
+          lineHeight: 1.5,
         }}
       >
-        {status} · {stats.fps} fps · cpp step: {stats.stepMs.toFixed(2)} ms
+        <div>{props.stats.fps} fps · cpp step: {props.stats.stepMs.toFixed(2)} ms</div>
+        <div style={{ color: "#64748b" }}>
+          {(props.count * props.count / 1e6).toFixed(2)}M ops/step · status: {props.status}
+        </div>
       </div>
     </header>
   );
 }
+
+const selectLabelStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.35rem",
+  fontSize: "0.78rem",
+};
+
+const selectStyle: React.CSSProperties = {
+  background: "#1e293b",
+  color: "#e2e8f0",
+  border: "1px solid #334155",
+  borderRadius: "4px",
+  padding: "0.25rem 0.4rem",
+  fontSize: "0.78rem",
+  fontFamily: "inherit",
+};
+
+const btnStyle = (bg: string, color: string): React.CSSProperties => ({
+  padding: "0.3rem 0.65rem",
+  background: bg,
+  color,
+  border: "1px solid #334155",
+  borderRadius: "4px",
+  fontSize: "0.85rem",
+  cursor: "pointer",
+  minWidth: "32px",
+});
 
 function Slider({
   label,
@@ -325,8 +381,8 @@ function Slider({
   onChange: (v: number) => void;
 }) {
   return (
-    <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem" }}>
-      <span style={{ color: "#cbd5e1", minWidth: 70 }}>
+    <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.78rem" }}>
+      <span style={{ color: "#cbd5e1", minWidth: 50 }}>
         {label}: <code style={{ color: "#f1f5f9" }}>{value.toFixed(2)}</code>
       </span>
       <input
@@ -336,7 +392,7 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        style={{ width: 100 }}
+        style={{ width: 80 }}
       />
     </label>
   );

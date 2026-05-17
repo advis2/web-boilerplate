@@ -104,6 +104,14 @@ int nbody_setup(int count, uintptr_t initialPtr) {
     printf("[C++] nbody_setup: device not ready (call nbody_init_webgpu first)\n");
     return -1;
   }
+
+  // 이전 리소스 해제 (재호출 케이스 — particle count 변경 등)
+  if (g_bindGroup)   { wgpuBindGroupRelease(g_bindGroup);   g_bindGroup   = nullptr; }
+  if (g_pipeline)    { wgpuComputePipelineRelease(g_pipeline); g_pipeline = nullptr; }
+  if (g_particleBuf) { wgpuBufferRelease(g_particleBuf);    g_particleBuf = nullptr; }
+  if (g_paramsBuf)   { wgpuBufferRelease(g_paramsBuf);      g_paramsBuf   = nullptr; }
+  if (g_readbackBuf) { wgpuBufferRelease(g_readbackBuf);    g_readbackBuf = nullptr; }
+
   g_count = count;
   size_t particleBytes = (size_t)count * 32;
 
