@@ -6,6 +6,12 @@ interface NBodyModule {
   _nbody_hello: () => number;
   _nbody_init_webgpu: () => number;
   _nbody_get_device_handle: () => number;
+  _nbody_setup: (count: number, initialPtr: number) => number;
+  _nbody_step: (dt: number, G: number, softening: number) => void;
+  _nbody_copy_to_readback: () => void;
+  _nbody_get_particle_buffer: () => number;
+  _nbody_get_readback_buffer: () => number;
+  _nbody_get_count: () => number;
   _nbody_malloc: (n: number) => number;
   _nbody_free: (p: number) => void;
   _malloc: (n: number) => number;
@@ -32,6 +38,41 @@ async function loadWasmFactory(jsSrc: string): Promise<NBodyFactory> {
   return factory as NBodyFactory;
 }
 
+// Particle stride: vec3 pos + pad + vec3 vel + pad = 8 floats = 32 bytes
+const STRIDE_FLOATS = 8;
+
+// 무작위 sphere distribution + tangential velocity (회전 disk-ish)
+function generateInitialParticles(n: number): Float32Array {
+  const data = new Float32Array(n * STRIDE_FLOATS);
+  for (let i = 0; i < n; i++) {
+    // sphere 표면 무작위
+    const u = Math.random();
+    const v = Math.random();
+    const theta = 2 * Math.PI * u;
+    const phi = Math.acos(2 * v - 1);
+    const r = 0.8 + Math.random() * 0.4;
+    const x = r * Math.sin(phi) * Math.cos(theta);
+    const y = r * Math.sin(phi) * Math.sin(theta);
+    const z = r * Math.cos(phi);
+
+    // 접선 방향 (z축 기준 회전)
+    const vx = -y * 0.4;
+    const vy = x * 0.4;
+    const vz = 0;
+
+    const off = i * STRIDE_FLOATS;
+    data[off + 0] = x;
+    data[off + 1] = y;
+    data[off + 2] = z;
+    data[off + 3] = 0; // _p0
+    data[off + 4] = vx;
+    data[off + 5] = vy;
+    data[off + 6] = vz;
+    data[off + 7] = 0; // _p1
+  }
+  return data;
+}
+
 interface StepResult {
   label: string;
   value: string;
@@ -45,65 +86,88 @@ export default function NBodyPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const pushResult = (r: StepResult) =>
-      setResults((prev) => [...prev, r]);
+    const push = (r: StepResult) => setResults((prev) => [...prev, r]);
+    const N = 2048;
+    const G = 0.5;
+    const SOFTENING = 0.1;
+    const DT = 1 / 60;
+    const STEP_COUNT = 60;
 
     (async () => {
       try {
-        // 1. WebGPU 지원 확인
-        setStatus("checking WebGPU support…");
-        if (!navigator.gpu) {
-          throw new Error("WebGPU not supported by this browser");
-        }
-        pushResult({ label: "navigator.gpu", value: "available", ok: true });
-
-        // 2. adapter / device
-        setStatus("requesting adapter / device…");
+        setStatus("checking WebGPU…");
+        if (!navigator.gpu) throw new Error("WebGPU not supported");
         const adapter = await navigator.gpu.requestAdapter();
         if (!adapter) throw new Error("no GPU adapter");
         const device = await adapter.requestDevice();
         if (cancelled) return;
-        pushResult({
-          label: "GPUDevice (JS)",
-          value: `acquired (limits.maxStorageBufferBindingSize=${device.limits.maxStorageBufferBindingSize})`,
-          ok: true,
-        });
+        push({ label: "GPUDevice", value: "acquired", ok: true });
 
-        // 3. factory + preinitializedWebGPUDevice
-        setStatus("fetching factory…");
+        setStatus("loading wasm…");
         const factory = await loadWasmFactory("/wasm/nbody.js");
-        if (cancelled) return;
-
-        setStatus("instantiating wasm (sharing device)…");
         const Module = await factory({
           locateFile: (f) => `/wasm/${f}`,
           preinitializedWebGPUDevice: device,
         });
         if (cancelled) return;
 
-        // 4. C++가 device 받았는지 검증
-        const hello = Module._nbody_hello();
-        pushResult({
-          label: "nbody_hello() (sanity)",
-          value: String(hello),
-          ok: hello === 42,
-        });
-
         const initRc = Module._nbody_init_webgpu();
-        pushResult({
-          label: "nbody_init_webgpu() return code",
-          value: initRc === 0 ? "0 (OK)" : `${initRc} (FAIL)`,
-          ok: initRc === 0,
+        if (initRc !== 0) throw new Error(`nbody_init_webgpu rc=${initRc}`);
+        push({ label: "nbody_init_webgpu()", value: "0 (OK)", ok: true });
+
+        // 초기 particle 데이터 생성 + WASM heap에 복사
+        setStatus(`generating ${N} particles…`);
+        const initial = generateInitialParticles(N);
+        const byteSize = initial.byteLength;
+        const ptr = Module._nbody_malloc(byteSize);
+        if (!ptr) throw new Error("nbody_malloc returned null");
+        Module.HEAPF32.set(initial, ptr / 4);
+        push({
+          label: "WASM heap alloc",
+          value: `${(byteSize / 1024).toFixed(1)} KB @ 0x${ptr.toString(16)}`,
+          ok: true,
         });
 
-        const handle = Module._nbody_get_device_handle();
-        pushResult({
-          label: "C++ WGPUDevice handle",
-          value: handle ? `0x${handle.toString(16)}` : "null",
-          ok: handle !== 0,
+        // Setup (buffer/pipeline 생성 + 데이터 업로드)
+        setStatus("nbody_setup…");
+        const t0 = performance.now();
+        const setupRc = Module._nbody_setup(N, ptr);
+        const t1 = performance.now();
+        if (setupRc !== 0) throw new Error(`nbody_setup rc=${setupRc}`);
+        push({
+          label: "nbody_setup()",
+          value: `0 (OK) in ${(t1 - t0).toFixed(2)} ms`,
+          ok: true,
         });
 
-        setStatus(initRc === 0 ? "ok" : "error");
+        // Buffer handle 검증
+        const particleBuf = Module._nbody_get_particle_buffer();
+        const readbackBuf = Module._nbody_get_readback_buffer();
+        push({
+          label: "WGPUBuffer handles",
+          value: `particle=0x${particleBuf.toString(16)}, readback=0x${readbackBuf.toString(16)}`,
+          ok: particleBuf !== 0 && readbackBuf !== 0,
+        });
+
+        // free initial (이미 GPU에 업로드됨)
+        Module._nbody_free(ptr);
+
+        // Dispatch N step (compute pass 실행)
+        setStatus(`running ${STEP_COUNT} steps…`);
+        const t2 = performance.now();
+        for (let i = 0; i < STEP_COUNT; i++) {
+          Module._nbody_step(DT, G, SOFTENING);
+        }
+        // GPU에 work 제출 후 완료 대기 (queue flush). device.queue.onSubmittedWorkDone() 사용
+        await device.queue.onSubmittedWorkDone();
+        const t3 = performance.now();
+        push({
+          label: `${STEP_COUNT} steps (N=${N}, ${N * N / 1e6}M ops/step)`,
+          value: `${(t3 - t2).toFixed(1)} ms total, ${((t3 - t2) / STEP_COUNT).toFixed(2)} ms/step`,
+          ok: true,
+        });
+
+        setStatus("ok");
       } catch (e) {
         setError(String((e as Error)?.message ?? e));
         setStatus("error");
@@ -117,7 +181,7 @@ export default function NBodyPage() {
   return (
     <main
       style={{
-        maxWidth: 720,
+        maxWidth: 760,
         margin: "2rem auto",
         padding: "0 1rem",
         color: "#0f172a",
@@ -125,8 +189,8 @@ export default function NBodyPage() {
     >
       <h1 style={{ margin: "0 0 0.5rem" }}>N-Body (C++ / WASM + WebGPU)</h1>
       <p style={{ margin: "0 0 1.5rem", color: "#64748b", fontSize: "0.95rem" }}>
-        <strong>Step 2:</strong> JS에서 만든 WebGPU device를 emscripten 런타임을
-        통해 C++가 받아 동일 device 위에서 작업할 수 있는지 검증.
+        <strong>Step 3:</strong> C++ 안에서 webgpu.h로 buffer / shader module /
+        compute pipeline 생성 후 N-body kernel을 dispatch. 시각화는 Step 4에서.
       </p>
 
       <section
@@ -154,11 +218,18 @@ export default function NBodyPage() {
           </code>
         </div>
 
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
           <tbody>
             {results.map((r, i) => (
               <tr key={i} style={{ borderTop: i > 0 ? "1px solid #e2e8f0" : "none" }}>
-                <td style={{ padding: "0.4rem 0.5rem 0.4rem 0", color: "#475569" }}>
+                <td
+                  style={{
+                    padding: "0.4rem 0.5rem 0.4rem 0",
+                    color: "#475569",
+                    verticalAlign: "top",
+                    width: "40%",
+                  }}
+                >
                   {r.label}
                 </td>
                 <td
@@ -186,6 +257,7 @@ export default function NBodyPage() {
               color: "#991b1b",
               fontSize: "0.85rem",
               fontFamily: "ui-monospace, monospace",
+              whiteSpace: "pre-wrap",
             }}
           >
             {error}
@@ -198,14 +270,9 @@ export default function NBodyPage() {
           <strong>다음 단계:</strong>
         </p>
         <ul style={{ margin: 0, paddingLeft: "1.25rem", lineHeight: 1.7 }}>
-          <li>Step 3: webgpu.h로 buffer/pipeline 생성 + N-body compute kernel dispatch</li>
-          <li>Step 4: GPU buffer를 JS render pipeline과 share</li>
-          <li>Step 5: UI polish (FPS, particle count, init patterns)</li>
+          <li>Step 4: GPU buffer를 JS render pipeline과 share → 실제 particle 시각화</li>
+          <li>Step 5: UI polish (FPS, particle count slider, init patterns)</li>
         </ul>
-        <p style={{ marginTop: "1rem" }}>
-          <strong>C++ 측 stdout:</strong> 브라우저 DevTools Console에 출력
-          (<code>[C++] WebGPU device acquired ...</code>)
-        </p>
       </section>
     </main>
   );
