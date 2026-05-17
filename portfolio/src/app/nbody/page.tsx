@@ -45,7 +45,11 @@ export default function NBodyPage() {
         if (cancelled) return;
 
         setStatus("instantiating wasm…");
-        const Module = await factory();
+        // locateFile: emcc가 nbody.wasm 받을 URL을 지정.
+        // new Function 컨텍스트라 _scriptDir 추론 안 됨 → 명시 필요.
+        const Module = await factory({
+          locateFile: (filename: string) => `/wasm/${filename}`,
+        });
         if (cancelled) return;
 
         setStatus("calling nbody_hello()…");
