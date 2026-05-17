@@ -13,26 +13,22 @@ interface NBodyModule {
   HEAP8: Int8Array;
 }
 
-declare global {
-  interface Window {
-    createNBodyModule?: () => Promise<NBodyModule>;
-  }
-}
+type NBodyFactory = (opts?: object) => Promise<NBodyModule>;
 
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[data-src="${src}"]`)) {
-      resolve();
-      return;
-    }
-    const s = document.createElement("script");
-    s.src = src;
-    s.async = true;
-    s.dataset.src = src;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error(`failed to load ${src}`));
-    document.head.appendChild(s);
-  });
+// emcc 산출물의 `var createNBodyModule = ...`는 동적 <script>에서
+// window에 항상 떨어지진 않음 (strict / module 컨텍스트 등).
+// fetch + new Function으로 factory를 직접 추출해 안정성 확보.
+async function loadWasmFactory(jsSrc: string): Promise<NBodyFactory> {
+  const res = await fetch(jsSrc);
+  if (!res.ok) throw new Error(`fetch ${jsSrc} → ${res.status}`);
+  const code = await res.text();
+  // new Function의 body는 함수 스코프 — var는 글로벌로 누수 안 됨.
+  // 끝에 return으로 factory 노출.
+  const factory = new Function(`${code}\n;return createNBodyModule;`)();
+  if (typeof factory !== "function") {
+    throw new Error("createNBodyModule factory not exported");
+  }
+  return factory as NBodyFactory;
 }
 
 export default function NBodyPage() {
@@ -44,16 +40,12 @@ export default function NBodyPage() {
     let cancelled = false;
     (async () => {
       try {
-        setStatus("loading script…");
-        await loadScript("/wasm/nbody.js");
+        setStatus("fetching factory…");
+        const factory = await loadWasmFactory("/wasm/nbody.js");
         if (cancelled) return;
 
-        if (!window.createNBodyModule) {
-          throw new Error("createNBodyModule not found on window");
-        }
-
         setStatus("instantiating wasm…");
-        const Module = await window.createNBodyModule();
+        const Module = await factory();
         if (cancelled) return;
 
         setStatus("calling nbody_hello()…");
