@@ -63,9 +63,9 @@ function generateInitialParticles(n: number): Float32Array {
 }
 
 const N = 2048;
-const DT = 1 / 120; // 더 안정적인 적분
-const G_DEFAULT = 0.3;
-const SOFTENING_DEFAULT = 0.15;
+const DT = 1 / 240; // 안정성 위해 더 작게
+const G_DEFAULT = 0.05;
+const SOFTENING_DEFAULT = 0.25;
 
 interface Ready {
   module: NBodyModule;
@@ -80,6 +80,27 @@ export default function NBodyPage() {
   const [G, setG] = useState(G_DEFAULT);
   const [softening, setSoftening] = useState(SOFTENING_DEFAULT);
   const [running, setRunning] = useState(true);
+  const [resetSerial, setResetSerial] = useState(0);
+
+  const reuploadParticles = (mod: NBodyModule) => {
+    const initial = generateInitialParticles(N);
+    const ptr = mod._nbody_malloc(initial.byteLength);
+    if (!ptr) throw new Error("malloc failed");
+    mod.HEAPF32.set(initial, ptr / 4);
+    const rc = mod._nbody_setup(N, ptr);
+    mod._nbody_free(ptr);
+    if (rc !== 0) throw new Error(`nbody_setup rc=${rc}`);
+  };
+
+  const handleReset = () => {
+    if (!ready) return;
+    try {
+      reuploadParticles(ready.module);
+      setResetSerial((s) => s + 1);
+    } catch (e) {
+      setError(String((e as Error)?.message ?? e));
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -100,21 +121,13 @@ export default function NBodyPage() {
         if (cancelled) return;
 
         if (Module._nbody_init_webgpu() !== 0) throw new Error("nbody_init_webgpu failed");
-
-        setStatus(`generating ${N} particles…`);
-        const initial = generateInitialParticles(N);
-        const ptr = Module._nbody_malloc(initial.byteLength);
-        if (!ptr) throw new Error("malloc failed");
-        Module.HEAPF32.set(initial, ptr / 4);
-
-        setStatus("nbody_setup…");
-        const rc = Module._nbody_setup(N, ptr);
-        Module._nbody_free(ptr);
-        if (rc !== 0) throw new Error(`nbody_setup rc=${rc}`);
-
         if (!Module.WebGPU?.mgrBuffer) {
           throw new Error("Module.WebGPU.mgrBuffer not available — post.js build issue");
         }
+
+        setStatus(`generating ${N} particles…`);
+        reuploadParticles(Module);
+        if (cancelled) return;
 
         setReady({ module: Module, device });
         setStatus("running");
@@ -148,11 +161,14 @@ export default function NBodyPage() {
         setSoftening={setSoftening}
         running={running}
         setRunning={setRunning}
+        onReset={handleReset}
+        resetEnabled={ready !== null}
       />
 
       <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
         {ready && running ? (
           <NBodyRenderCanvas
+            key={resetSerial}
             module={ready.module}
             device={ready.device}
             particleCount={N}
@@ -208,6 +224,8 @@ function Header({
   setSoftening,
   running,
   setRunning,
+  onReset,
+  resetEnabled,
 }: {
   status: string;
   stats: { fps: number; stepMs: number };
@@ -217,6 +235,8 @@ function Header({
   setSoftening: (v: number) => void;
   running: boolean;
   setRunning: (b: boolean) => void;
+  onReset: () => void;
+  resetEnabled: boolean;
 }) {
   return (
     <header
@@ -256,6 +276,22 @@ function Header({
           }}
         >
           {running ? "⏸ Pause" : "▶ Run"}
+        </button>
+
+        <button
+          onClick={onReset}
+          disabled={!resetEnabled}
+          style={{
+            padding: "0.4rem 0.85rem",
+            background: "transparent",
+            color: resetEnabled ? "#94a3b8" : "#475569",
+            border: "1px solid #334155",
+            borderRadius: "6px",
+            fontSize: "0.82rem",
+            cursor: resetEnabled ? "pointer" : "not-allowed",
+          }}
+        >
+          ↺ Reset
         </button>
       </div>
 
