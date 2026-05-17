@@ -24,7 +24,8 @@ $emccArgs = @(
   "-sEXPORT_NAME=createNBodyModule",
   "-sENVIRONMENT=web",
   "-sALLOW_MEMORY_GROWTH=1",
-  "-sEXPORTED_FUNCTIONS=_nbody_hello,_nbody_malloc,_nbody_free,_malloc,_free",
+  "-sUSE_WEBGPU=1",
+  "-sEXPORTED_FUNCTIONS=_nbody_hello,_nbody_init_webgpu,_nbody_get_device_handle,_nbody_malloc,_nbody_free,_malloc,_free",
   "-o", $outFile
 )
 
