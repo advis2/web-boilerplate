@@ -20,6 +20,83 @@ interface Props {
   onStats?: (s: { fps: number; stepMs: number }) => void;
 }
 
+const SCENE_HALF = 2.5;
+
+const LINE_WGSL = `
+struct Camera {
+  viewProj  : mat4x4<f32>,
+  pointSize : f32,
+  _pad0 : f32,
+  _pad1 : f32,
+  _pad2 : f32,
+};
+
+@group(0) @binding(0) var<uniform> cam : Camera;
+
+struct VOut {
+  @builtin(position) pos   : vec4<f32>,
+  @location(0)       color : vec3<f32>,
+};
+
+@vertex
+fn vs(@location(0) pos : vec3<f32>, @location(1) col : vec3<f32>) -> VOut {
+  var out : VOut;
+  out.pos   = cam.viewProj * vec4<f32>(pos, 1.0);
+  out.color = col;
+  return out;
+}
+
+@fragment
+fn fs(in : VOut) -> @location(0) vec4<f32> {
+  return vec4<f32>(in.color, 1.0);
+}
+`;
+
+function buildSceneLines(half: number): Float32Array {
+  const vs: number[] = [];
+  const pushLine = (
+    ax: number, ay: number, az: number,
+    bx: number, by: number, bz: number,
+    cr: number, cg: number, cb: number,
+  ) => {
+    vs.push(ax, ay, az, cr, cg, cb);
+    vs.push(bx, by, bz, cr, cg, cb);
+  };
+
+  // XYZ axis (R/G/B)
+  pushLine(0, 0, 0, half * 0.4, 0, 0, 0.9, 0.25, 0.25);
+  pushLine(0, 0, 0, 0, half * 0.4, 0, 0.25, 0.9, 0.25);
+  pushLine(0, 0, 0, 0, 0, half * 0.4, 0.25, 0.4, 1.0);
+
+  // Wireframe cube
+  const c = 0.32;
+  pushLine(-half, -half, -half,  half, -half, -half, c, c, c);
+  pushLine( half, -half, -half,  half, -half,  half, c, c, c);
+  pushLine( half, -half,  half, -half, -half,  half, c, c, c);
+  pushLine(-half, -half,  half, -half, -half, -half, c, c, c);
+  pushLine(-half,  half, -half,  half,  half, -half, c, c, c);
+  pushLine( half,  half, -half,  half,  half,  half, c, c, c);
+  pushLine( half,  half,  half, -half,  half,  half, c, c, c);
+  pushLine(-half,  half,  half, -half,  half, -half, c, c, c);
+  pushLine(-half, -half, -half, -half,  half, -half, c, c, c);
+  pushLine( half, -half, -half,  half,  half, -half, c, c, c);
+  pushLine( half, -half,  half,  half,  half,  half, c, c, c);
+  pushLine(-half, -half,  half, -half,  half,  half, c, c, c);
+
+  // Ground grid (y = -half)
+  const g = 0.18;
+  const steps = 6;
+  for (let i = 0; i <= steps; i++) {
+    const t = -half + (2 * half * i) / steps;
+    pushLine(-half, -half, t,  half, -half, t,  g, g, g);
+    pushLine(t, -half, -half,  t, -half,  half,  g, g, g);
+  }
+
+  const arr = new Float32Array(vs.length);
+  arr.set(vs);
+  return arr;
+}
+
 const RENDER_WGSL = `
 struct Particle {
   pos : vec3<f32>,
@@ -210,11 +287,54 @@ export default function NBodyRenderCanvas({
       depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
     });
 
-    // Camera (isometric)
+    // Line (wireframe cube + ground grid + axis) pipeline
+    const lineData = buildSceneLines(SCENE_HALF);
+    const lineVertexBuf = device.createBuffer({
+      size: lineData.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(
+      lineVertexBuf,
+      0,
+      lineData.buffer as ArrayBuffer,
+      lineData.byteOffset,
+      lineData.byteLength,
+    );
+    const lineVertexCount = lineData.length / 6;
+
+    const lineBGL = device.createBindGroupLayout({
+      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: "uniform" } }],
+    });
+    const lineBindGroup = device.createBindGroup({
+      layout: lineBGL,
+      entries: [{ binding: 0, resource: { buffer: cameraBuf } }],
+    });
+    const lineShader = device.createShaderModule({ code: LINE_WGSL });
+    const linePipeline = device.createRenderPipeline({
+      layout: device.createPipelineLayout({ bindGroupLayouts: [lineBGL] }),
+      vertex: {
+        module: lineShader,
+        entryPoint: "vs",
+        buffers: [
+          {
+            arrayStride: 24,
+            attributes: [
+              { shaderLocation: 0, offset: 0, format: "float32x3" },
+              { shaderLocation: 1, offset: 12, format: "float32x3" },
+            ],
+          },
+        ],
+      },
+      fragment: { module: lineShader, entryPoint: "fs", targets: [{ format }] },
+      primitive: { topology: "line-list" },
+      depthStencil: { format: "depth24plus", depthWriteEnabled: true, depthCompare: "less" },
+    });
+
+    // Camera (isometric, cube fit)
     const cam = {
       yaw: Math.PI / 4,
       pitch: Math.atan(1 / Math.SQRT2),
-      distance: 6,
+      distance: 8,
       pointSize: 0.014,
     };
 
@@ -251,7 +371,9 @@ export default function NBodyRenderCanvas({
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      cam.distance = Math.max(2, Math.min(30, cam.distance * (1 + e.deltaY * 0.001)));
+      // cube 외접 구 반경 이상으로만 줌인 가능 (cube 안쪽 진입 방지)
+      const minDist = SCENE_HALF * Math.sqrt(3) + 0.5;
+      cam.distance = Math.max(minDist, Math.min(50, cam.distance * (1 + e.deltaY * 0.001)));
     };
     let dragging = false;
     let lastX = 0;
@@ -286,7 +408,10 @@ export default function NBodyRenderCanvas({
 
       // 2. Camera uniform 업데이트
       const aspect = w / h;
-      const proj = mat4Perspective(Math.PI / 3, aspect, 0.5, 50);
+      const sceneRadius = SCENE_HALF * Math.SQRT2 * 1.3;
+      const near = Math.max(0.1, cam.distance - sceneRadius);
+      const far = cam.distance + sceneRadius * 3;
+      const proj = mat4Perspective(Math.PI / 3, aspect, near, far);
       const ex = Math.cos(cam.pitch) * Math.sin(cam.yaw) * cam.distance;
       const ey = Math.sin(cam.pitch) * cam.distance;
       const ez = Math.cos(cam.pitch) * Math.cos(cam.yaw) * cam.distance;
@@ -317,6 +442,12 @@ export default function NBodyRenderCanvas({
           depthStoreOp: "store",
         },
       });
+      // Lines (cube + grid + axis) 먼저, 그 다음 particle (alpha blending)
+      pass.setPipeline(linePipeline);
+      pass.setBindGroup(0, lineBindGroup);
+      pass.setVertexBuffer(0, lineVertexBuf);
+      pass.draw(lineVertexCount);
+
       pass.setPipeline(renderPipeline);
       pass.setBindGroup(0, renderBindGroup);
       pass.draw(6, particleCount);
