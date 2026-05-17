@@ -25,6 +25,7 @@ $emccArgs = @(
   "-sENVIRONMENT=web",
   "-sALLOW_MEMORY_GROWTH=1",
   "-sUSE_WEBGPU=1",
+  "--post-js", (Join-Path $scriptDir "post.js"),
   "-sEXPORTED_FUNCTIONS=_nbody_hello,_nbody_init_webgpu,_nbody_get_device_handle,_nbody_setup,_nbody_step,_nbody_copy_to_readback,_nbody_get_particle_buffer,_nbody_get_readback_buffer,_nbody_get_count,_nbody_malloc,_nbody_free,_malloc,_free",
   "-o", $outFile
 )
