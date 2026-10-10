@@ -2,7 +2,8 @@
 
 import React, { ReactNode } from "react";
 import { profile, TechStack, techStack } from "./profile";
-import { ProjectCard, projects } from "./projects";
+import { demoProjects, ProjectCard, researchProjects } from "./projects";
+import { PrivateSection } from "./PrivateSection";
 import { Timeline } from "./timeline";
 import { Stats } from "./stats";
 import {
@@ -122,35 +123,54 @@ export default function AboutPage() {
         </p>
       </header>
 
-      <Section
-        title="At a Glance"
-        subtitle="단일 도메인 long-term 활동의 정량 지표 (조직 전체 기준)"
-      >
-        <Stats />
-      </Section>
+      <PrivateSection>
+        {(data) => (
+          <>
+            <Section
+              title="At a Glance"
+              subtitle="이마고웍스 재직 기간 개인 활동 지표 (2021.02 — 2026.08)"
+            >
+              <Stats stats={data.stats} />
+            </Section>
+
+            <Section
+              title="Career Timeline"
+              subtitle="기하 알고리즘 연구 → C++ 엔진 → 제품 출시 → 수직 통합"
+            >
+              <Timeline timeline={data.timeline} />
+            </Section>
+
+            <Section
+              title="Case Studies — Industry"
+              subtitle="기능 추가가 아닌 구조 변경 위주로 선별"
+            >
+              {data.projects.map((p) => (
+                <ProjectCard key={p.name} {...p} />
+              ))}
+            </Section>
+          </>
+        )}
+      </PrivateSection>
 
       <Section
-        title="Career Timeline"
-        subtitle="C++ 엔진 → 풀스택 → 수직 통합으로 이어지는 의식적 진화"
+        title="Case Studies — Research"
+        subtitle="서울대학교 Human Centered CAD Lab 산학과제 · 박사학위 연구"
       >
-        <Timeline />
+        {researchProjects.map((p) => (
+          <ProjectCard key={p.name} {...p} />
+        ))}
       </Section>
 
-      <Section
-        title="Case Studies"
-        subtitle="기능 추가가 아닌 시스템 규모 변경 위주로 선별"
-      >
-        {projects.map((p) => (
+      <Section title="Live Demos">
+        {demoProjects.map((p) => (
           <ProjectCard key={p.name} {...p} />
         ))}
       </Section>
 
       <Section title="Technical Expertise">
-        <TechStack title="Frontend" items={techStack.frontend} />
-        <TechStack title="Backend" items={techStack.backend} />
-        <TechStack title="C++ / WebAssembly" items={techStack.cppWasm} />
-        <TechStack title="Build & DevX" items={techStack.devx} />
-        <TechStack title="Domain" items={techStack.domain} />
+        {techStack.map((t) => (
+          <TechStack key={t.title} title={t.title} items={t.items} />
+        ))}
       </Section>
 
       <Section title="Publications">

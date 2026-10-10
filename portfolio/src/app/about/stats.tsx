@@ -6,16 +6,7 @@ export interface Stat {
   hint?: string;
 }
 
-export const stats: readonly Stat[] = [
-  { label: "Years in domain", value: "5+", hint: "단일 도메인 long-term" },
-  { label: "Commits", value: "10K+", hint: "조직 전체 누적" },
-  { label: "Merged PRs", value: "1.5K+", hint: "조직 전체 누적" },
-  { label: "Legacy LOC removed", value: "40K+", hint: "단일 패키지 청산" },
-  { label: "Hexagonal migrations", value: "9", hint: "feature 단위 점진" },
-  { label: "AI models integrated", value: "10+", hint: "C++/WASM ↔ remote" },
-];
-
-export function Stats() {
+export function Stats({ stats }: { stats: readonly Stat[] }) {
   return (
     <div
       style={{

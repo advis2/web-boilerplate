@@ -7,9 +7,7 @@ on:
   pull_request:
 
 permissions:
-  actions: read
-  contents: write    # 배포 및 푸시 작업을 위한 쓰기 권한
-  id-token: write    # GitHub Actions에서 JWT 토큰을 생성할 수 있는 권한 (선택 사항, 보안 관련)
+  contents: write    # gh-pages 배포 push 권한
 
 jobs:
   main:
@@ -20,9 +18,9 @@ jobs:
           filter: tree:0
           fetch-depth: 0
 
-      # Corepack 활성화 → pnpm 사용
+      # Corepack 활성화 + pnpm 버전 명시 (latest 받으면 lockfile incompatible)
       - run: corepack enable
-      - run: corepack prepare pnpm@latest --activate
+      - run: corepack prepare pnpm@8.6.11 --activate
 
       - uses: actions/setup-node@v4
         with:
@@ -31,7 +29,6 @@ jobs:
 
       - run: pnpm --version
 
-      # pnpm 의존성 설치
       - run: pnpm install --frozen-lockfile
 
       # 1. 정적 검증 (lint + typecheck) — PR 회귀 가드
@@ -46,17 +43,22 @@ jobs:
         run: pnpm nx run-many -t test --parallel=3 --passWithNoTests
 
       # 3. Build the Next.js site (정적 export)
+      #    CI runner는 GITHUB_ACTIONS=true 자동 — next.config.js의 basePath 적용
       - name: Build Next.js site
         run: pnpm nx build portfolio
 
-      # 4. Deploy to GitHub Pages (master push 시에만)
+      # 4. Build 산출물 검증 + Jekyll 비활성화 (_next/ 폴더 보호)
+      - name: Prepare deploy artifacts
+        run: |
+          ls -la dist/apps/portfolio/out/index.html
+          touch dist/apps/portfolio/out/.nojekyll
+          ls -la dist/apps/portfolio/out/.nojekyll
+
+      # 5. Deploy to GitHub Pages (master push 시에만)
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist/apps/portfolio/out
-
-      # Nx Cloud self-healing (연결 안 했으면 noop)
-      - run: npx nx fix-ci
-        if: always()
+          enable_jekyll: false

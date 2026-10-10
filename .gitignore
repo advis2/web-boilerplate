@@ -49,3 +49,5 @@ test-output
 vite.config.*.timestamp*
 
 portfolio/next-env.d.ts
+# /about 비공개 섹션 평문 — 암호문(src/app/about/private.enc.json)만 커밋
+portfolio/private/

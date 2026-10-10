@@ -8,7 +8,38 @@ export interface Publication {
 }
 
 export const publications: readonly Publication[] = [
-  // TODO: 실제 publication 정보로 교체
+  {
+    title:
+      "Magnet-inspired intuitive design tool for inner structures of solid models",
+    venue: "Ph.D. Dissertation, Seoul National University",
+    year: 2021,
+    description:
+      "제어점 주변에 Voronoi 셀이 조밀해지는 대화형 내부 구조 설계 도구. " +
+      "무게중심 제어와 국소 물성 개선에 응용.",
+  },
+  {
+    title: "Unwrapped phase correction for robust 3D scanning",
+    venue: "Dong-Uk Kam, Jeong Hee Kim, Kunwoo Lee",
+    year: 2019,
+    description:
+      "KNN 탐색으로 wrapped phase 오차 범위를 제어하는 temporal phase unwrapping. " +
+      "3개 주파수·6단계 패턴 이동으로 fringe order 정확도와 스캔 로버스트성 향상.",
+  },
+  {
+    title:
+      "Localized triangle mesh generation algorithm for parallel computation",
+    venue: "한국CAD/CAM학회",
+    year: 2014,
+    description:
+      "정점마다 Voronoi 조건을 만족하는 다각형을 국소적으로 구성해 " +
+      "병렬화 가능한 Delaunay triangulation 을 계산.",
+  },
+  {
+    title: "삼각형 메쉬 상에서의 미분연산자",
+    venue: "한국CAD/CAM학회 하계 학술대회 — 우수논문상",
+    year: 2014,
+    description: "삼각형 메시 위의 이산 미분연산자.",
+  },
 ];
 
 export function PublicationCard({
