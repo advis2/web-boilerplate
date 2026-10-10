@@ -2,59 +2,77 @@ import React from "react";
 
 export const profile = {
   name: "Donguk Kam, Ph.D.",
-  title: "Senior Full-Stack / Systems Engineer",
-  tagline:
-    "C++/WASM 엔진 → 모노레포 풀스택 → 수직 통합 설계자",
-  domain: "3D Medical · CAD/CAM SaaS",
+  title: "R&D Leader @ Imagoworks",
+  tagline: "3D 기하 알고리즘 → C++/WASM 엔진 → 웹 클라이언트 → 출시까지",
+  domain: "Dental CAD/CAM · 3D Geometry Processing",
   email: "wadvisw@gmail.com",
   github: "https://github.com/advis2",
   summary:
-    "단일 도메인에서 5년+ 동안 C++/WASM 엔진 개발, React/TypeScript 모노레포 설계, " +
-    "그리고 둘을 잇는 수직 통합 아키텍처를 의식적으로 진화시켜 온 시스템 엔지니어. " +
-    "기능 추가보다 레이어 경계 정립, SSOT 정합성, 회귀 방지 인프라 구축에 시간을 투자한다.",
+    "3D 기하 알고리즘과 CAD 애플리케이션을 함께 만드는 엔지니어. " +
+    "C++/WebAssembly 기하 엔진과 TypeScript 프론트엔드를 양쪽에서 직접 구현하며, " +
+    "치과 CAD 제품을 5년간 출시·운영해 왔다. 개별 기능 구현에 그치지 않고 " +
+    "아키텍처 경계를 lint·컴파일 옵션으로 기계가 강제하도록 코드베이스 구조를 바꿔 왔다. " +
+    "서울대학교 기계항공공학부 공학박사 (Human Centered CAD Lab).",
 } as const;
 
-export const techStack = {
-  frontend: [
-    "TypeScript",
-    "React",
-    "Next.js",
-    "Redux",
-    "Zustand",
-    "MUI",
-    "styled-components",
-    "Zod",
-  ],
-  backend: ["NestJS", "Node.js", "REST", "Python"],
-  cppWasm: [
-    "C++",
-    "CMake",
-    "Emscripten",
-    "OpenMesh",
-    "VTK",
-    "ITK",
-    "OpenCV",
-    "OpenGL",
-    "Qt",
-    "onnxruntime",
-  ],
-  devx: [
-    "Nx",
-    "rspack",
-    "ESLint (module boundaries)",
-    "Jest",
-    "Cypress",
-    "GitHub Actions",
-    "Azure Pipelines",
-  ],
-  domain: [
-    "3D Mesh Processing",
-    "Computer-Aided Design",
-    "Medical Imaging",
-    "AI Inference Integration",
-    "WebAssembly Pipelines",
-  ],
-} as const;
+export const techStack: readonly { title: string; items: readonly string[] }[] = [
+  {
+    title: "Languages",
+    items: ["C++ (17/20)", "TypeScript", "Python", "MATLAB", "GLSL", "WGSL"],
+  },
+  {
+    title: "3D Geometry & Numerics",
+    items: [
+      "Mesh / Half-edge / BVH",
+      "Parametrization",
+      "ICP / 2D-3D Registration",
+      "Bundle Adjustment",
+      "Laplacian / ARAP Deformation",
+      "Geodesics (Heat Method)",
+      "ceres-solver",
+      "OSQP",
+      "OpenMesh",
+      "VTK",
+      "ITK",
+      "Draco",
+    ],
+  },
+  {
+    title: "Graphics & GPU",
+    items: ["OpenGL", "Qt", "WebGL", "WebGPU", "CUDA", "OpenCV"],
+  },
+  {
+    title: "C++ / WebAssembly",
+    items: ["Emscripten", "embind", "asyncify / JSPI", "CMake", "gTest"],
+  },
+  {
+    title: "Web & App",
+    items: [
+      "React",
+      "Next.js",
+      "Redux",
+      "Nx Monorepo",
+      "Electron",
+      "Node.js",
+      "ESLint (module boundaries)",
+      "Jest",
+      "Cypress",
+    ],
+  },
+  {
+    title: "AI & Infra",
+    items: [
+      "ONNX Runtime",
+      "Triton Inference Server",
+      "AI Agent Orchestration",
+      "Docker",
+      "GitHub Actions",
+      "AWS (EKS, S3)",
+      "Azure Storage",
+      "MongoDB",
+    ],
+  },
+];
 
 interface TechStackProps {
   title: string;

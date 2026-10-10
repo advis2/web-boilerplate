@@ -9,105 +9,78 @@ export interface CaseStudy {
   tags: readonly string[];
 }
 
-export const projects: readonly CaseStudy[] = [
-  {
-    name: "C++/WASM 엔진 ↔ 모노레포 풀스택 수직 통합",
-    context: "3D Medical SaaS 도메인",
-    problem:
-      "C++ 도메인 엔진과 React/TypeScript 프론트가 별도 리포에서 진화하며 " +
-      "프로세스/추론 경계가 모호해지고, 엔진 변경이 풀스택 회귀로 이어짐.",
-    approach:
-      "엔진 inference layer 와 프론트 process layer 사이에 sibling 패턴을 " +
-      "도입해 client-local / remote 추론을 동일 인터페이스로 분리. " +
-      "분할 시리즈 PR 로 10+ AI 모듈을 단일 패턴으로 균일 마이그레이션.",
-    outcome:
-      "추론 컴퓨팅의 배치 지점을 자유롭게 선택 가능, 엔진/프론트 간 계약이 " +
-      "테스트 가능한 단위로 정형화.",
-    tags: ["C++", "WebAssembly", "AI Inference", "Architecture"],
-  },
-  {
-    name: "대규모 레거시 패키지 청산 (40K+ LOC)",
-    context: "백엔드 통합 후 무용해진 SDK 정리",
-    problem:
-      "백엔드 통합으로 사용처가 사라진 단일 SDK 패키지가 build/CI 비용과 " +
-      "신규 입사자 학습 비용을 지속적으로 발생시킴.",
-    approach:
-      "호출처 audit → 단계적 deprecate → ownership 명확화 후 " +
-      "단일 PR 로 4만+ 라인 일괄 제거.",
-    outcome:
-      "build / lint / 모노레포 graph 단축, 도메인 모델 단순화. " +
-      "동일 패턴으로 ImagoEvent / ImplantLibraryDB 등 유사 청산 진행.",
-    tags: ["Refactoring", "Monorepo", "Ownership"],
-  },
-  {
-    name: "Feature-based Hexagonal Migration (9 features)",
-    context: "라자냐 layer 구조에서 feature-based 로 점진 전환",
-    problem:
-      "states / manager / process 의 가로 layer 구조에서 cross-cut 회귀가 " +
-      "빈발하고, ESLint 경계 부재로 feature 간 직접 import 가 누적.",
-    approach:
-      "12 원칙 명세 + ESLint enforce-module-boundaries / boundaries 룰 설계. " +
-      "margin-line pilot 후 8 features 점진 확장. 각 feature 가 api / commands / " +
-      "domain / infra / hooks / __tests__ 5층을 강제.",
-    outcome:
-      "feature 간 직접 import 차단, singleton 직접 호출 제거, " +
-      "context 명시 주입 강제. feature-local 테스트 가능.",
-    tags: ["Hexagonal", "ESLint", "Architecture", "Migration"],
-  },
-  {
-    name: "회귀 방지 인프라의 메타화",
-    context: "버그 수정이 다시 깨지는 패턴, spec 의 false-PASS 누적",
-    problem:
-      "버그 fix 가 회귀하거나, source-text grep 으로만 PASS 한 spec 이 " +
-      "실제 사용자 시나리오에서는 fail 하는 경우가 누적.",
-    approach:
-      "bug-fix-regression / flow-test-authoring / complex-ui-state 규칙을 " +
-      "팀 차원의 명세로 문서화. PR 본문 패턴 (원인 / 고정 수단 / sanity / " +
-      "후속 트랙) 표준화, it.fails 박제 패턴 도입.",
-    outcome:
-      "PR 본문 일관화, 회귀 가드 spec 표준화. test : fix 비율이 " +
-      "거의 1:1 로 정착.",
-    tags: ["Testing", "Process", "Tech Lead"],
-  },
-  {
-    name: "Build & DevX Infrastructure",
-    context: "Nx 모노레포의 빌드/캐시/CI 안정화",
-    problem:
-      "feature 증가에 따라 빌드 시간 / lint 시간 / CI flakiness 가 증가, " +
-      "개발자 피드백 루프가 길어짐.",
-    approach:
-      "Nx target 명시화, rspack 도입, batch-perf workflow 정비, " +
-      "GitHub Actions / Azure Pipelines 의 캐싱·디버깅 인프라 정비.",
-    outcome:
-      "CI 피드백 루프 단축, cypress flakiness 감소, " +
-      "feature 단위 incremental build 정상화.",
-    tags: ["Nx", "rspack", "CI/CD", "DevX"],
-  },
+// 사내 작업 case study 는 공개 레포에 평문으로 두지 않는다 (private.enc.json, PrivateSection 참조).
+export const demoProjects: readonly CaseStudy[] = [
   {
     name: "Browser-side C++/WASM + WebGPU 3D Pipeline (Live Demos)",
-    context: "본인 portfolio 사이트의 도메인 실증 데모 3종",
+    context: "이 사이트의 인터랙티브 데모",
     problem:
-      "C++/WASM 엔진 + GPU 컴퓨팅 + 3D 시각화의 수직 통합 경험은 " +
-      "이력서 텍스트로는 전달이 약함. 채용/협업 시 \"이런 아키텍처를 " +
-      "다룬다\"는 사실을 직접 만져볼 수 있는 형태로 보여줄 필요.",
+      "C++/WASM 엔진 + GPU 컴퓨팅 + 3D 시각화의 수직 통합 경험은 텍스트로 전달이 약하다. " +
+      "직접 만져볼 수 있는 형태가 필요.",
     approach:
-      "Emscripten + webgpu.h 로 C++가 GPU compute pipeline / buffer / " +
-      "dispatch를 직접 발행하고, JS render pipeline이 같은 GPU buffer를 " +
-      "zero-copy로 시각화하는 패턴을 portfolio에 인터랙티브 데모 3종으로 " +
-      "구현:\n" +
-      "  · /cuda-playground — WGSL compute shader 라이브 에디터 " +
-      "(Monaco + 300ms 재컴파일, 16K particles)\n" +
-      "  · /nbody — C++/WASM이 webgpu.h로 N-body O(N²) gravity kernel을 " +
-      "오케스트레이션 (512~8K particles, ~0.7ms/step)\n" +
-      "  · /mesh — C++ 절차적 mesh (sphere/torus) + GPU vertex deformation " +
-      "(최대 ~33K vertex, 같은 buffer를 vertex attribute로 직접 render)",
+      "Emscripten + webgpu.h 로 C++ 가 compute pipeline / buffer / dispatch 를 직접 발행하고, " +
+      "JS render pipeline 이 같은 GPU buffer 를 zero-copy 로 시각화:\n" +
+      "  · /cuda-playground — WGSL compute shader 라이브 에디터 (16K particles)\n" +
+      "  · /nbody — C++/WASM N-body O(N²) gravity kernel (512~8K particles, ~0.7ms/step)\n" +
+      "  · /mesh — C++ 절차적 mesh + GPU vertex deformation (최대 ~33K vertex)",
     outcome:
-      "사이트 방문자가 직접 코드 수정 / 파라미터 조정 / 마우스 조작으로 " +
-      "동작을 확인. iwtk 도메인 아키텍처의 단순화된 시연으로, 단순한 " +
-      "코드 샘플이 아니라 \"수직 통합\"을 실제로 동작시키는 형태.",
-    tags: ["C++", "WebAssembly", "WebGPU", "3D", "Live Demo"],
+      "방문자가 코드 수정 / 파라미터 조정 / 마우스 조작으로 동작을 직접 확인.",
+    tags: ["C++", "WebAssembly", "WebGPU", "Live Demo"],
   },
-] as const;
+];
+
+export const researchProjects: readonly CaseStudy[] = [
+  {
+    name: "광학식 3D 스캐너 소프트웨어",
+    context: "서울대 산학과제 5건 · 2014 — 2019",
+    problem:
+      "구조광 스캐너의 정밀도는 캘리브레이션·phase unwrapping·다중 시점 정합 오차의 누적. " +
+      "어느 단계가 원인인지 분리하지 않으면 개선이 불가능.",
+    approach:
+      "· Phase unwrapping — KNN 탐색으로 오차 범위를 제어하는 temporal 기법 제안 (3주파수·6단계)\n" +
+      "· 캘리브레이션 — 마커 기반 패턴 설계·검출로 스테레오 카메라·회전축 정밀도 동시 향상\n" +
+      "· 정합 — 샘플링과 최적화를 분리한 ICP 재구현, 다중 시점 bundle adjustment",
+    outcome:
+      "캘리브레이션·재구성·정합 전 구간 구현. phase unwrapping 기법은 논문으로 게재.",
+    tags: ["Structured Light", "Calibration", "ICP", "OpenGL"],
+  },
+  {
+    name: "수술 내비게이션용 2D X-ray — 3D CT 정합",
+    context: "서울대 산학과제 2건 · 2014 — 2016",
+    problem:
+      "로봇 보조 인공 슬관절 치환술(TKA)에서 수술 중 2D X-ray 로 환자 자세를 추정해 " +
+      "CT 기반 계획과 맞춰야 한다. 정확도와 속도를 동시에 만족해야 한다.",
+    approach:
+      "steel ball 팬텀 + Gaussian fitting 서브픽셀 검출로 C-arm 파라미터 도출. " +
+      "ray casting 기반 DRR 생성, AP·LAT 2방향 2D/3D 정합. " +
+      "캘리브레이션 오차와 정합 오차를 분리 측정.",
+    outcome:
+      "전 구간 구현 후 납품. 후속 과제에서 광학 마커 없는 인대재건술 내비게이션(MRI·C-arm 정합)으로 확장.",
+    tags: ["Medical Imaging", "2D/3D Registration", "DRR"],
+  },
+  {
+    name: "스마트폰 영상 기반 타이어 트레드 깊이 측정",
+    context: "서울대 산학과제 · 2014 — 2015",
+    problem: "전용 장비 없이 휴대폰 영상만으로 트레드 깊이를 실제 치수로 재야 한다.",
+    approach:
+      "SfM 으로 표면 메시 복원 + 센서 데이터로 scale 보정. curvature 대신 volume descriptor 로 " +
+      "트레드와 접지면을 분리하고, 최소자승 표면 피팅으로 깊이 추정.",
+    outcome: "수동 측정값과 거의 동일한 깊이를 자동 획득. CAD/CAM 학회(2015) 발표.",
+    tags: ["SfM", "Shape Descriptor", "Least Squares"],
+  },
+  {
+    name: "박사학위 연구 — 자석에서 착안한 내부 구조 설계 도구",
+    context: "서울대학교 · 2014 — 2021",
+    problem:
+      "적층 제조 부품의 내부 구조는 무게중심·강성·재료량을 좌우하지만, 기존 도구에는 " +
+      "\"여기를 더 촘촘하게\"라는 설계 의도를 표현할 수단이 없었다.",
+    approach:
+      "사용자가 제어점을 놓으면 주변 Voronoi 셀이 조밀해지는 생성 규칙을 정의. " +
+      "subdivision 으로 셀마다 원하는 두께의 skin 을 부여해 제조 가능한 형상으로 변환.",
+    outcome: "응용으로 무게중심 제어와 선택 영역의 기계적 물성 개선을 제시.",
+    tags: ["Solid Modeling", "Voronoi", "Additive Manufacturing"],
+  },
+];
 
 export function ProjectCard(p: CaseStudy) {
   return (
